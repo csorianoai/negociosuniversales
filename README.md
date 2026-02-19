@@ -1,4 +1,4 @@
-﻿# Negocios Universales
+# Negocios Universales
 
 > Plataforma AI de tasacion inmobiliaria y vehicular para el mercado bancario dominicano.
 
