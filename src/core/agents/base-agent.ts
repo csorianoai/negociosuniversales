@@ -29,6 +29,10 @@ export abstract class BaseAgent {
     this.promptFileName = promptFileName;
   }
 
+  get agentName(): string {
+    return this.name;
+  }
+
   /**
    * Loads system prompt from prompts/system/{promptFileName}.
    * Caches in memory. Fallback to generic string on fs error.
