@@ -1,0 +1,14 @@
+﻿node_modules/
+.env
+.env.local
+.env.*.local
+supabase/.temp/
+.next/
+out/
+.vercel
+coverage/
+.DS_Store
+*.pem
+*.key
+service-account*.json
+credenciales*.txt
