@@ -1,0 +1,152 @@
+import 'server-only';
+import { z } from 'zod';
+import { createAdminClient } from '@/lib/supabase-admin';
+import { BaseAgent } from './base-agent';
+import { AI_MODELS } from '@/core/types';
+
+const IntakeSchema = z.object({
+  property_data: z.record(z.string(), z.unknown()),
+  confidence: z.number(),
+  missing_fields: z.array(z.string()).optional(),
+  needs_human_review: z.boolean().optional(),
+});
+
+export class IntakeAgent extends BaseAgent {
+  constructor() {
+    super('intake', AI_MODELS.HAIKU, 'INTAKE.md');
+  }
+
+  async execute(caseId: string, tenantId: string) {
+    const admin = createAdminClient();
+    const start = Date.now();
+
+    const { data: caseRow, error: caseErr } = await admin
+      .from('cases')
+      .select('id, property_data, address, city, sector, property_type')
+      .eq('id', caseId)
+      .eq('tenant_id', tenantId)
+      .maybeSingle();
+
+    if (caseErr || !caseRow) {
+      return {
+        success: false,
+        data: null,
+        error: caseErr?.message ?? 'Case not found',
+        cost_usd: 0,
+        tokens_in: 0,
+        tokens_out: 0,
+        duration_ms: Date.now() - start,
+        agent_name: this.name,
+      };
+    }
+
+    const { data: evidenceRows } = await admin
+      .from('evidence')
+      .select('id, file_path, file_name, file_hash, mime_type')
+      .eq('case_id', caseId)
+      .eq('tenant_id', tenantId);
+
+    const evidence_files = (evidenceRows ?? []).map((r) => ({
+      id: r.id,
+      file_path: r.file_path,
+      file_name: r.file_name,
+      file_hash: r.file_hash,
+      mime_type: r.mime_type,
+    }));
+
+    const userMessage = JSON.stringify({
+      property_data: caseRow.property_data,
+      evidence_files,
+    });
+
+    const aiResult = await this.callAI(userMessage);
+
+    if (aiResult.error) {
+      return {
+        success: false,
+        data: null,
+        error: aiResult.error,
+        cost_usd: aiResult.cost_usd,
+        tokens_in: aiResult.tokens_in,
+        tokens_out: aiResult.tokens_out,
+        duration_ms: aiResult.duration_ms,
+        agent_name: this.name,
+      };
+    }
+
+    let parsed: z.infer<typeof IntakeSchema>;
+    try {
+      const json = JSON.parse(aiResult.content) as unknown;
+      const parseResult = IntakeSchema.safeParse(json);
+      if (!parseResult.success) {
+        return {
+          success: false,
+          data: null,
+          error: `Invalid AI response: ${parseResult.error.message}`,
+          cost_usd: aiResult.cost_usd,
+          tokens_in: aiResult.tokens_in,
+          tokens_out: aiResult.tokens_out,
+          duration_ms: aiResult.duration_ms,
+          agent_name: this.name,
+        };
+      }
+      parsed = parseResult.data;
+    } catch {
+      return {
+        success: false,
+        data: null,
+        error: 'Invalid AI response: invalid JSON',
+        cost_usd: aiResult.cost_usd,
+        tokens_in: aiResult.tokens_in,
+        tokens_out: aiResult.tokens_out,
+        duration_ms: aiResult.duration_ms,
+        agent_name: this.name,
+      };
+    }
+
+    const { error: updateErr } = await admin
+      .from('cases')
+      .update({
+        property_data: parsed.property_data,
+        status: 'intake',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', caseId)
+      .eq('tenant_id', tenantId);
+
+    if (updateErr) {
+      return {
+        success: false,
+        data: null,
+        error: updateErr.message,
+        cost_usd: aiResult.cost_usd,
+        tokens_in: aiResult.tokens_in,
+        tokens_out: aiResult.tokens_out,
+        duration_ms: aiResult.duration_ms,
+        agent_name: this.name,
+      };
+    }
+
+    await this.logCost(caseId, tenantId, {
+      tokens_in: aiResult.tokens_in,
+      tokens_out: aiResult.tokens_out,
+      cost_usd: aiResult.cost_usd,
+      duration_ms: aiResult.duration_ms,
+    });
+
+    await this.logAudit(caseId, tenantId, 'agent.intake.completed', {
+      confidence: parsed.confidence,
+    });
+
+    return {
+      success: true,
+      data: parsed,
+      error: null,
+      cost_usd: aiResult.cost_usd,
+      tokens_in: aiResult.tokens_in,
+      tokens_out: aiResult.tokens_out,
+      duration_ms: aiResult.duration_ms,
+      agent_name: this.name,
+    };
+  }
+}

@@ -61,7 +61,7 @@ export abstract class BaseAgent {
    * Calls Claude with system prompt and user message.
    * Measures duration and returns token/cost info.
    */
-  protected async callAI(userMessage: string): Promise<{
+  protected async callAI(userMessage: string, options?: { maxTokens?: number }): Promise<{
     content: string;
     tokens_in: number;
     tokens_out: number;
@@ -76,6 +76,7 @@ export abstract class BaseAgent {
       model: this.model,
       systemPrompt,
       userMessage,
+      maxTokens: options?.maxTokens,
     });
 
     const duration_ms = Date.now() - start;
