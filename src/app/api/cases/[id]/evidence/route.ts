@@ -51,12 +51,12 @@ export async function POST(
         case_id: caseId,
         tenant_id: auth.tenantId,
         file_path: filePath,
-        file_name: file.name,
         file_hash: fileHash,
-        mime_type: file.type || null,
-        file_size: buffer.length,
+        file_type: file.type || null,
+        metadata: {},
+        uploaded_by: auth.userId,
       })
-      .select('id, file_path, file_name, file_hash, mime_type, file_size, created_at')
+      .select('id, file_path, file_hash, file_type, metadata, uploaded_by, created_at')
       .single();
 
     if (insertErr) {

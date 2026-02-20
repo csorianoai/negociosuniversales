@@ -22,24 +22,24 @@ export async function requireAuth(): Promise<AuthResult> {
     }
 
     const admin = createAdminClient();
-    const { data: userRow } = await admin
-      .from('users')
+    const { data: profileRow } = await admin
+      .from('profiles')
       .select('tenant_id')
       .eq('id', user.id)
       .limit(1)
       .maybeSingle();
 
-    if (!userRow?.tenant_id) {
+    if (!profileRow?.tenant_id) {
       return {
         ok: false,
         response: NextResponse.json(
-          { error: 'Forbidden', details: 'No tenant assigned' },
+          { error: 'Forbidden', details: 'Profile not found' },
           { status: 403 }
         ),
       };
     }
 
-    return { ok: true, userId: user.id, tenantId: userRow.tenant_id };
+    return { ok: true, userId: user.id, tenantId: profileRow.tenant_id };
   } catch (err) {
     return {
       ok: false,

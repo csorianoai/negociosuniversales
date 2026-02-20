@@ -26,19 +26,44 @@ export class QAAgent extends BaseAgent {
     const admin = createAdminClient();
     const start = Date.now();
 
-    const { data: reportRow, error: reportErr } = await admin
-      .from('reports')
-      .select('id, report_markdown, report_data')
-      .eq('case_id', caseId)
-      .order('version', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    let report_markdown: string | null = null;
+    let report_data: Record<string, unknown> = {};
+    let report_id: string | null = null;
 
-    if (reportErr || !reportRow) {
+    try {
+      const { data: reportRow } = await admin
+        .from('reports')
+        .select('id, report_markdown, report_data')
+        .eq('case_id', caseId)
+        .order('version', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (reportRow) {
+        report_markdown = reportRow.report_markdown ?? null;
+        report_data = (reportRow.report_data ?? {}) as Record<string, unknown>;
+        report_id = reportRow.id;
+      }
+    } catch {
+      // reports table may not exist
+    }
+
+    if (!report_markdown) {
+      const { data: caseRow } = await admin
+        .from('cases')
+        .select('property_data')
+        .eq('id', caseId)
+        .eq('tenant_id', tenantId)
+        .maybeSingle();
+      const pd = (caseRow?.property_data ?? {}) as Record<string, unknown>;
+      report_markdown = (pd?.report_markdown as string) ?? null;
+    }
+
+    if (!report_markdown) {
       return {
         success: false,
         data: null,
-        error: reportErr?.message ?? 'Report not found',
+        error: 'Report not found',
         cost_usd: 0,
         tokens_in: 0,
         tokens_out: 0,
@@ -56,12 +81,12 @@ export class QAAgent extends BaseAgent {
 
     const { count } = await admin
       .from('comparables')
-      .select('*', { count: 'exact', head: true })
+      .select('id', { count: 'exact', head: true })
       .eq('case_id', caseId);
 
     const userMessage = JSON.stringify({
-      report_markdown: reportRow.report_markdown,
-      report_data: reportRow.report_data,
+      report_markdown,
+      report_data,
       property_data: caseRow?.property_data ?? {},
       comparable_count: count ?? 0,
     });
@@ -111,28 +136,36 @@ export class QAAgent extends BaseAgent {
       };
     }
 
-    const { error: updateReportErr } = await admin
-      .from('reports')
-      .update({ vrs_score: parsed.vrs_score })
-      .eq('id', reportRow.id);
+    if (report_id) {
+      try {
+        const { error: updateReportErr } = await admin
+          .from('reports')
+          .update({ vrs_score: parsed.vrs_score })
+          .eq('id', report_id);
 
-    if (updateReportErr) {
-      return {
-        success: false,
-        data: null,
-        error: updateReportErr.message,
-        cost_usd: aiResult.cost_usd,
-        tokens_in: aiResult.tokens_in,
-        tokens_out: aiResult.tokens_out,
-        duration_ms: aiResult.duration_ms,
-        agent_name: this.name,
-      };
+        if (updateReportErr) {
+          return {
+            success: false,
+            data: null,
+            error: updateReportErr.message,
+            cost_usd: aiResult.cost_usd,
+            tokens_in: aiResult.tokens_in,
+            tokens_out: aiResult.tokens_out,
+            duration_ms: aiResult.duration_ms,
+            agent_name: this.name,
+          };
+        }
+      } catch {
+        // reports table may not exist, continue
+      }
     }
+
+    const qaStatus = parsed.overall_pass ? 'qa_passed' : 'qa_failed';
 
     const { error: updateCaseErr } = await admin
       .from('cases')
       .update({
-        status: 'qa',
+        status: qaStatus,
         updated_at: new Date().toISOString(),
       })
       .eq('id', caseId)

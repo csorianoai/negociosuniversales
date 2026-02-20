@@ -1,86 +1,98 @@
 /** @fileoverview Core domain types for Negocios Universales appraisal platform. */
 
-export type CaseStatus =
-  | 'draft'
-  | 'intake'
-  | 'research'
-  | 'comparable'
-  | 'report'
-  | 'qa'
-  | 'compliance'
-  | 'review'
+export type KnownCaseStatus =
+  | 'pending_intake'
+  | 'intake_processing'
+  | 'intake_completed'
+  | 'research_processing'
+  | 'research_completed'
+  | 'comparable_processing'
+  | 'comparable_completed'
+  | 'report_processing'
+  | 'report_completed'
+  | 'qa_processing'
+  | 'qa_passed'
+  | 'qa_failed'
+  | 'compliance_processing'
+  | 'compliance_passed'
+  | 'compliance_failed'
+  | 'human_review'
+  | 'approved'
   | 'delivered'
-  | 'archived';
+  | 'cancelled';
+
+export type CaseStatus = KnownCaseStatus | (string & {});
 
 export interface Tenant {
   id: string;
   name: string;
-  slug: string;
-  plan: 'basic' | 'pro' | 'enterprise';
-  settings: Record<string, unknown>;
+  rnc: string | null;
+  plan: string;
+  config: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }
 
-export interface User {
+export interface Profile {
   id: string;
   tenant_id: string;
-  email: string;
+  role_id: string;
   full_name: string | null;
-  role: 'superadmin' | 'admin' | 'analyst' | 'appraiser' | 'viewer';
+  phone: string | null;
   mfa_enabled: boolean;
   created_at: string;
-  updated_at: string;
+}
+
+export interface Role {
+  id: string;
+  name: string | null;
+  permissions: Record<string, unknown> | null;
+  description: string | null;
 }
 
 export interface Case {
   id: string;
   tenant_id: string;
+  case_number: string;
   status: CaseStatus;
-  property_type: 'residential' | 'commercial' | 'land' | 'vehicle' | 'mixed' | null;
-  address: string | null;
-  city: string | null;
-  sector: string | null;
+  case_type: string;
   property_data: Record<string, unknown>;
-  market_context: Record<string, unknown>;
+  assigned_appraiser: string | null;
+  ai_confidence: number | null;
+  ai_cost_usd: number | null;
   created_by: string | null;
-  assigned_to: string | null;
-  total_cost_usd: number;
   created_at: string;
   updated_at: string;
 }
 
 export interface Evidence {
   id: string;
-  case_id: string;
   tenant_id: string;
+  case_id: string;
   file_path: string;
-  file_name: string | null;
   file_hash: string;
-  mime_type: string | null;
-  file_size: number | null;
+  file_type: string | null;
   metadata: Record<string, unknown>;
+  uploaded_by: string | null;
   created_at: string;
 }
 
 export interface Comparable {
   id: string;
-  case_id: string | null;
   tenant_id: string;
+  case_id: string;
+  source: string;
+  source_id: string | null;
   address: string | null;
-  city: string | null;
-  sector: string | null;
-  property_type: string | null;
-  area_m2: number | null;
-  value_usd: number | null;
-  value_dop: number | null;
+  price: string | null;
+  price_per_sqm: string | null;
+  date_sold: string | null;
+  similarity_score: number | null;
   adjustments: Record<string, unknown>;
-  adjusted_value_usd: number | null;
-  source: string | null;
-  confidence: number | null;
   created_at: string;
 }
 
+/** FUTURE TABLE - no existe en DB aún. Envolver uso en try/catch. */
 export interface Report {
   id: string;
   case_id: string;
@@ -99,15 +111,16 @@ export interface AuditLogEntry {
   id: string;
   tenant_id: string;
   case_id: string | null;
-  user_id: string | null;
   action: string;
-  agent_name: string | null;
-  payload: Record<string, unknown>;
+  actor: string | null;
   prev_hash: string | null;
   current_hash: string | null;
+  payload: Record<string, unknown>;
+  ip_address: string | null;
   created_at: string;
 }
 
+/** FUTURE TABLE - no existe en DB aún. Envolver uso en try/catch. */
 export interface AICostEntry {
   id: string;
   tenant_id: string | null;
@@ -120,6 +133,17 @@ export interface AICostEntry {
   duration_ms: number | null;
   confidence: number | null;
   created_at: string;
+}
+
+/** Contrato estándar de payload para costos AI. */
+export interface AICostPayload {
+  agent_name: string;
+  model: string;
+  tokens_in: number;
+  tokens_out: number;
+  cost_usd: number;
+  duration_ms: number;
+  confidence?: number;
 }
 
 export interface AgentResult<T = unknown> {

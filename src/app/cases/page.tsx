@@ -10,27 +10,29 @@ import { DataTable } from '@/components/ui/DataTable';
 import type { Case } from '@/core/types';
 import type { DataTableColumn } from '@/components/ui/DataTable';
 import { formatDateDO } from '@/lib/format';
+import { getPropertyAddress } from '@/lib/property-data';
 import { DEMO_MODE, demoCases } from '@/lib/demo-data';
 
 const PAGE_SIZE = 20;
 
 const STATUS_GROUPS = [
   { key: 'all', label: 'Todos' },
-  { key: 'draft', label: 'Borrador' },
-  { key: 'intake', label: 'Recepción' },
-  { key: 'research', label: 'Investigación' },
-  { key: 'comparable', label: 'Comparables' },
-  { key: 'report', label: 'Informe' },
-  { key: 'qa', label: 'QA' },
-  { key: 'compliance', label: 'Cumplimiento' },
-  { key: 'review', label: 'Revisión' },
+  { key: 'pending_intake', label: 'Pendiente' },
+  { key: 'intake_completed', label: 'Recepción' },
+  { key: 'research_completed', label: 'Investigación' },
+  { key: 'comparable_completed', label: 'Comparables' },
+  { key: 'report_completed', label: 'Informe' },
+  { key: 'qa_passed', label: 'QA Aprobado' },
+  { key: 'qa_failed', label: 'QA Rechazado' },
+  { key: 'compliance_passed', label: 'Cumplimiento' },
+  { key: 'compliance_failed', label: 'Cumplimiento Fallido' },
   { key: 'delivered', label: 'Entregado' },
-  { key: 'archived', label: 'Archivado' },
+  { key: 'cancelled', label: 'Cancelado' },
 ] as const;
 
 const columns: DataTableColumn<Case>[] = [
-  { key: 'id', header: 'ID', render: (r) => <span className="font-mono text-[#4B5563]">{r.id.slice(0, 8)}</span> },
-  { key: 'address', header: 'Dirección', render: (r) => r.address ?? 'Sin dirección' },
+  { key: 'case_number', header: 'Caso', render: (r) => <span className="font-mono text-[#4B5563]">{r.case_number}</span> },
+  { key: 'address', header: 'Dirección', render: (r) => getPropertyAddress(r.property_data) ?? 'Sin dirección' },
   { key: 'status', header: 'Status', render: (r) => <StatusBadge status={r.status} /> },
   { key: 'date', header: 'Fecha', render: (r) => formatDateDO(r.created_at) },
   {
@@ -114,7 +116,7 @@ export default function CasesPage() {
     }
     if (searchDebounced.trim()) {
       const q = searchDebounced.trim().toLowerCase();
-      list = list.filter((c) => (c.address ?? '').toLowerCase().includes(q));
+      list = list.filter((c) => (getPropertyAddress(c.property_data) ?? '').toLowerCase().includes(q));
     }
     return list;
   }, [cases, statusFilter, searchDebounced]);

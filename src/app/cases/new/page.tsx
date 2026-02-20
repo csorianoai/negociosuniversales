@@ -100,11 +100,16 @@ export default function NewCasePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          property_type: formData.property_type,
+          case_type: formData.property_type,
           address: formData.address,
           city: formData.city,
           sector: formData.sector || null,
+          property_type: formData.property_type,
           property_data: {
+            address: formData.address,
+            city: formData.city,
+            sector: formData.sector || null,
+            property_type: formData.property_type,
             area_m2: formData.area_m2 ? Number(formData.area_m2) : null,
             rooms: formData.rooms ? Number(formData.rooms) : null,
             bathrooms: formData.bathrooms ? Number(formData.bathrooms) : null,

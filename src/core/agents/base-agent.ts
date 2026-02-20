@@ -1,22 +1,15 @@
 import 'server-only';
-import { createHash, randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { callClaude } from '@/lib/anthropic';
 import { createAdminClient } from '@/lib/supabase-admin';
-import type { AgentResult } from '@/core/types';
-
-const MAX_AUDIT_RETRIES = 3;
+import type { AgentResult, AICostPayload } from '@/core/types';
 
 const promptCache = new Map<string, string>();
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 /**
  * Base class for all AI agents. Handles prompt loading, AI calls,
- * cost logging, and hash-chained audit logging.
+ * cost logging, and audit logging. Hash chain is computed by DB trigger.
  */
 export abstract class BaseAgent {
   protected readonly name: string;
@@ -91,8 +84,8 @@ export abstract class BaseAgent {
   }
 
   /**
-   * Inserts cost entry into ai_cost_log via admin client.
-   * Logs to console on error but does not throw.
+   * Logs cost: tries ai_cost_log first; on failure, fallback to audit_log with action='ai_cost'.
+   * Always updates cases.ai_cost_usd. Does not throw.
    */
   protected async logCost(
     caseId: string,
@@ -102,10 +95,22 @@ export abstract class BaseAgent {
       tokens_out: number;
       cost_usd: number;
       duration_ms: number;
+      confidence?: number;
     }
   ): Promise<void> {
+    const payload: AICostPayload = {
+      agent_name: this.name,
+      model: this.model,
+      tokens_in: result.tokens_in,
+      tokens_out: result.tokens_out,
+      cost_usd: result.cost_usd,
+      duration_ms: result.duration_ms,
+      confidence: result.confidence,
+    };
+
+    const admin = createAdminClient();
+
     try {
-      const admin = createAdminClient();
       const { error } = await admin.from('ai_cost_log').insert({
         tenant_id: tenantId,
         case_id: caseId,
@@ -116,18 +121,45 @@ export abstract class BaseAgent {
         cost_usd: result.cost_usd,
         duration_ms: result.duration_ms,
       });
-
-      if (error) {
-        console.error('[BaseAgent] logCost failed:', error.message);
+      if (error) throw error;
+    } catch {
+      try {
+        await admin.from('audit_log').insert({
+          tenant_id: tenantId,
+          case_id: caseId,
+          action: 'ai_cost',
+          actor: null,
+          payload,
+        });
+      } catch (err) {
+        console.error('[BaseAgent] logCost audit fallback:', err instanceof Error ? err.message : String(err));
       }
+    }
+
+    try {
+      const { data: current } = await admin
+        .from('cases')
+        .select('ai_cost_usd')
+        .eq('id', caseId)
+        .eq('tenant_id', tenantId)
+        .maybeSingle();
+      const prev = (current?.ai_cost_usd as number | null) ?? 0;
+      await admin
+        .from('cases')
+        .update({
+          ai_cost_usd: prev + result.cost_usd,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', caseId)
+        .eq('tenant_id', tenantId);
     } catch (err) {
-      console.error('[BaseAgent] logCost error:', err instanceof Error ? err.message : String(err));
+      console.error('[BaseAgent] logCost ai_cost_usd update failed:', err instanceof Error ? err.message : String(err));
     }
   }
 
   /**
-   * Appends audit_log entry with hash chain. Retries on conflict (23505).
-   * Uses safe payload serialization. Does not throw on failure.
+   * Appends audit_log entry. DB trigger computes prev_hash and current_hash.
+   * No hash calculation in code.
    */
   protected async logAudit(
     caseId: string,
@@ -135,64 +167,21 @@ export abstract class BaseAgent {
     action: string,
     payload: Record<string, unknown>
   ): Promise<void> {
-    let payloadStr: string;
     try {
-      payloadStr = JSON.stringify(payload);
-    } catch {
-      payloadStr = '{}';
-    }
+      const admin = createAdminClient();
+      const { error } = await admin.from('audit_log').insert({
+        tenant_id: tenantId,
+        case_id: caseId,
+        action,
+        actor: null,
+        payload,
+      });
 
-    const admin = createAdminClient();
-
-    for (let attempt = 1; attempt <= MAX_AUDIT_RETRIES; attempt++) {
-      try {
-        const { data: lastRow } = await admin
-          .from('audit_log')
-          .select('current_hash')
-          .eq('tenant_id', tenantId)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        const prevHash = lastRow?.current_hash ?? 'GENESIS';
-        const timestamp = new Date().toISOString();
-        const nonce = randomUUID();
-        const hashInput =
-          prevHash + action + timestamp + payloadStr + nonce;
-        const currentHash = createHash('sha256')
-          .update(hashInput)
-          .digest('hex');
-
-        const { error } = await admin.from('audit_log').insert({
-          tenant_id: tenantId,
-          case_id: caseId,
-          action,
-          agent_name: this.name,
-          payload: payload as Record<string, unknown>,
-          prev_hash: prevHash,
-          current_hash: currentHash,
-        });
-
-        if (!error) {
-          return;
-        }
-
-        const isConflict =
-          (error as { code?: string } | null)?.code === '23505';
-        if (isConflict && attempt < MAX_AUDIT_RETRIES) {
-          await sleep(50 * attempt);
-          continue;
-        }
-
+      if (error) {
         console.error('[BaseAgent] logAudit failed:', error.message);
-        return;
-      } catch (err) {
-        console.error(
-          '[BaseAgent] logAudit error:',
-          err instanceof Error ? err.message : String(err)
-        );
-        return;
       }
+    } catch (err) {
+      console.error('[BaseAgent] logAudit error:', err instanceof Error ? err.message : String(err));
     }
   }
 

@@ -6,11 +6,15 @@ import { AI_MODELS } from '@/core/types';
 
 const ComparableItemSchema = z.object({
   address: z.string(),
-  area_m2: z.number(),
+  area_m2: z.number().optional(),
   original_value_usd: z.number(),
+  price_per_sqm: z.number().nullable().optional(),
+  date_sold: z.string().nullable().optional(),
+  similarity_score: z.number().nullable().optional(),
   adjustments: z.record(z.string(), z.unknown()),
-  adjusted_value_usd: z.number(),
+  adjusted_value_usd: z.number().optional(),
   source: z.string(),
+  source_id: z.string().nullable().optional(),
 });
 
 const ComparableSchema = z.object({
@@ -30,7 +34,7 @@ export class ComparableAgent extends BaseAgent {
 
     const { data: caseRow, error: caseErr } = await admin
       .from('cases')
-      .select('property_data, market_context')
+      .select('property_data')
       .eq('id', caseId)
       .eq('tenant_id', tenantId)
       .maybeSingle();
@@ -50,23 +54,25 @@ export class ComparableAgent extends BaseAgent {
 
     const { data: compRows } = await admin
       .from('comparables')
-      .select('address, city, sector, area_m2, value_usd, value_dop, source')
+      .select('address, price, price_per_sqm, date_sold, source, source_id')
       .eq('tenant_id', tenantId)
       .limit(20);
 
     const known_comparables = (compRows ?? []).map((r) => ({
       address: r.address,
-      city: r.city,
-      sector: r.sector,
-      area_m2: r.area_m2,
-      value_usd: r.value_usd,
-      value_dop: r.value_dop,
+      price: r.price,
+      price_per_sqm: r.price_per_sqm,
+      date_sold: r.date_sold,
       source: r.source,
+      source_id: r.source_id,
     }));
+
+    const pd = (caseRow?.property_data ?? {}) as Record<string, unknown>;
+    const market_context = pd?.market_context ?? {};
 
     const userMessage = JSON.stringify({
       property_data: caseRow.property_data,
-      market_context: caseRow.market_context,
+      market_context,
       known_comparables,
     });
 
@@ -119,20 +125,21 @@ export class ComparableAgent extends BaseAgent {
       await admin.from('comparables').insert({
         case_id: caseId,
         tenant_id: tenantId,
-        address: comp.address,
-        area_m2: comp.area_m2,
-        value_usd: comp.original_value_usd,
-        value_dop: null,
-        adjustments: comp.adjustments,
-        adjusted_value_usd: comp.adjusted_value_usd,
         source: comp.source,
+        source_id: comp.source_id ?? null,
+        address: comp.address,
+        price: String(comp.original_value_usd),
+        price_per_sqm: comp.price_per_sqm != null ? String(comp.price_per_sqm) : null,
+        date_sold: comp.date_sold ?? null,
+        similarity_score: comp.similarity_score ?? null,
+        adjustments: comp.adjustments,
       });
     }
 
     const { error: updateErr } = await admin
       .from('cases')
       .update({
-        status: 'comparable',
+        status: 'comparable_completed',
         updated_at: new Date().toISOString(),
       })
       .eq('id', caseId)

@@ -17,7 +17,7 @@ export async function GET(
     const admin = createAdminClient();
     const { data: caseRow, error: caseErr } = await admin
       .from('cases')
-      .select('id, tenant_id, status, property_type, address, city, sector, property_data, market_context, total_cost_usd, created_at, updated_at')
+      .select('id, tenant_id, case_number, status, case_type, property_data, assigned_appraiser, ai_confidence, ai_cost_usd, created_by, created_at, updated_at')
       .eq('id', caseId)
       .eq('tenant_id', auth.tenantId)
       .maybeSingle();
@@ -31,28 +31,42 @@ export async function GET(
 
     const { data: evidence } = await admin
       .from('evidence')
-      .select('id, file_path, file_name, file_hash, mime_type, file_size, created_at')
+      .select('id, file_path, file_hash, file_type, metadata, uploaded_by, created_at')
       .eq('case_id', caseId)
       .eq('tenant_id', auth.tenantId);
 
     const { data: comparables } = await admin
       .from('comparables')
-      .select('id, address, area_m2, value_usd, value_dop, adjustments, adjusted_value_usd, source, created_at')
+      .select('id, source, source_id, address, price, price_per_sqm, date_sold, similarity_score, adjustments, created_at')
       .eq('case_id', caseId)
       .eq('tenant_id', auth.tenantId);
 
-    const { data: reports } = await admin
-      .from('reports')
-      .select('id, report_markdown, report_data, vrs_score, version, created_at')
-      .eq('case_id', caseId)
-      .eq('tenant_id', auth.tenantId)
-      .order('version', { ascending: false });
+    let reports: unknown[] = [];
+    try {
+      const { data: reportsData } = await admin
+        .from('reports')
+        .select('id, report_markdown, report_data, vrs_score, version, created_at')
+        .eq('case_id', caseId)
+        .eq('tenant_id', auth.tenantId)
+        .order('version', { ascending: false });
+      reports = reportsData ?? [];
+    } catch {
+      // reports table may not exist
+    }
+
+    const report = Array.isArray(reports) && reports.length > 0 ? reports[0] : null;
+    const report_markdown =
+      (caseRow.property_data as Record<string, unknown> | null)?.report_markdown ??
+      (report && typeof report === 'object' && report !== null && 'report_markdown' in report
+        ? (report as { report_markdown: string | null }).report_markdown
+        : null);
 
     return NextResponse.json({
-      case: caseRow,
+      ...caseRow,
       evidence: evidence ?? [],
       comparables: comparables ?? [],
-      reports: reports ?? [],
+      report,
+      report_markdown,
     });
   } catch (err) {
     return NextResponse.json(

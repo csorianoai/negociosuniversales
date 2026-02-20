@@ -4,9 +4,21 @@ import { cn } from '@/lib/cn';
 
 const STEPS = ['intake', 'research', 'comparable', 'report', 'qa', 'compliance'] as const;
 
+const STATUS_TO_STEP: Record<string, number> = {
+  pending_intake: 0, intake_processing: 0, intake_completed: 1,
+  research_processing: 1, research_completed: 2,
+  comparable_processing: 2, comparable_completed: 3,
+  report_processing: 3, report_completed: 4,
+  qa_processing: 4, qa_passed: 5, qa_failed: 5,
+  compliance_processing: 5, compliance_passed: 6, compliance_failed: 6,
+  human_review: 6, approved: 6, delivered: 6, cancelled: 0,
+};
+
 function getStepIndex(status: string): number {
-  const i = STEPS.indexOf(status as (typeof STEPS)[number]);
-  return i >= 0 ? i : 0;
+  const i = STATUS_TO_STEP[status];
+  if (i !== undefined) return Math.min(i, 5);
+  const fallback = STEPS.indexOf(status as (typeof STEPS)[number]);
+  return fallback >= 0 ? fallback : 0;
 }
 
 const stepLabels: Record<string, string> = {

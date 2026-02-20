@@ -26,19 +26,38 @@ export class ComplianceAgent extends BaseAgent {
     const admin = createAdminClient();
     const start = Date.now();
 
-    const { data: reportRow, error: reportErr } = await admin
-      .from('reports')
-      .select('report_markdown')
-      .eq('case_id', caseId)
-      .order('version', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    let report_markdown: string | null = null;
 
-    if (reportErr || !reportRow) {
+    try {
+      const { data: reportRow } = await admin
+        .from('reports')
+        .select('report_markdown')
+        .eq('case_id', caseId)
+        .order('version', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      report_markdown = reportRow?.report_markdown ?? null;
+    } catch {
+      // reports table may not exist
+    }
+
+    if (!report_markdown) {
+      const { data: caseRow } = await admin
+        .from('cases')
+        .select('property_data')
+        .eq('id', caseId)
+        .eq('tenant_id', tenantId)
+        .maybeSingle();
+      const pd = (caseRow?.property_data ?? {}) as Record<string, unknown>;
+      report_markdown = (pd?.report_markdown as string) ?? null;
+    }
+
+    if (!report_markdown) {
       return {
         success: false,
         data: null,
-        error: reportErr?.message ?? 'Report not found',
+        error: 'Report not found',
         cost_usd: 0,
         tokens_in: 0,
         tokens_out: 0,
@@ -56,15 +75,15 @@ export class ComplianceAgent extends BaseAgent {
 
     const { data: tenantRow } = await admin
       .from('tenants')
-      .select('settings, plan')
+      .select('config, plan')
       .eq('id', tenantId)
       .maybeSingle();
 
     const userMessage = JSON.stringify({
-      report_markdown: reportRow.report_markdown,
+      report_markdown,
       property_data: caseRow?.property_data ?? {},
       case_status: caseRow?.status ?? null,
-      tenant_settings: tenantRow?.settings ?? {},
+      tenant_config: tenantRow?.config ?? {},
       tenant_plan: tenantRow?.plan ?? null,
     });
 
@@ -113,7 +132,7 @@ export class ComplianceAgent extends BaseAgent {
       };
     }
 
-    const newStatus = parsed.overall_compliant ? 'delivered' : 'compliance';
+    const newStatus = parsed.overall_compliant ? 'compliance_passed' : 'compliance_failed';
 
     const { error: updateErr } = await admin
       .from('cases')

@@ -11,11 +11,12 @@ import { DataTable } from '@/components/ui/DataTable';
 import type { Case } from '@/core/types';
 import type { DataTableColumn } from '@/components/ui/DataTable';
 import { formatDateDO, formatUSD } from '@/lib/format';
+import { getPropertyAddress } from '@/lib/property-data';
 import { DEMO_MODE, demoCases } from '@/lib/demo-data';
 
 const columns: DataTableColumn<Case>[] = [
-  { key: 'id', header: 'ID', render: (r) => <span className="font-mono text-[#4B5563]">{r.id.slice(0, 8)}</span> },
-  { key: 'address', header: 'Dirección', render: (r) => r.address ?? 'Sin dirección' },
+  { key: 'case_number', header: 'Caso', render: (r) => <span className="font-mono text-[#4B5563]">{r.case_number}</span> },
+  { key: 'address', header: 'Dirección', render: (r) => getPropertyAddress(r.property_data) ?? 'Sin dirección' },
   { key: 'status', header: 'Status', render: (r) => <StatusBadge status={r.status} /> },
   { key: 'date', header: 'Fecha', render: (r) => formatDateDO(r.created_at) },
   {
@@ -78,10 +79,10 @@ export default function DashboardPage() {
 
   const total = cases.length;
   const enProgreso = cases.filter(
-    (c) => !['draft', 'delivered', 'archived'].includes(c.status)
+    (c) => !['delivered', 'cancelled', 'approved'].includes(c.status)
   ).length;
   const completados = cases.filter((c) => c.status === 'delivered').length;
-  const costo = cases.reduce((sum, c) => sum + (c.total_cost_usd ?? 0), 0);
+  const costo = cases.reduce((sum, c) => sum + (c.ai_cost_usd ?? 0), 0);
   const recentCases = cases.slice(0, 10);
 
   return (

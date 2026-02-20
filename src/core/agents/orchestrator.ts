@@ -75,11 +75,7 @@ export async function runPipeline(
   const total_cost_usd = steps.reduce((sum, s) => sum + s.cost_usd, 0);
   const total_duration_ms = steps.reduce((sum, s) => sum + s.duration_ms, 0);
 
-  await admin
-    .from('cases')
-    .update({ total_cost_usd })
-    .eq('id', caseId)
-    .eq('tenant_id', tenantId);
+  // ai_cost_usd is updated per-agent in BaseAgent.logCost
 
   const success =
     steps.length === 6 && steps.every((s) => s.success);

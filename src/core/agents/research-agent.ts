@@ -21,7 +21,7 @@ export class ResearchAgent extends BaseAgent {
 
     const { data: caseRow, error: caseErr } = await admin
       .from('cases')
-      .select('property_data, address, city, sector')
+      .select('property_data')
       .eq('id', caseId)
       .eq('tenant_id', tenantId)
       .maybeSingle();
@@ -39,16 +39,14 @@ export class ResearchAgent extends BaseAgent {
       };
     }
 
-    const { data: kbRows } = await admin
-      .from('knowledge_base')
-      .select('id, content, source, metadata')
-      .eq('tenant_id', tenantId)
+    const { data: ragRows } = await admin
+      .from('rag_chunks')
+      .select('content, source_type, metadata')
       .limit(10);
 
-    const rag_context = (kbRows ?? []).map((r) => ({
-      id: r.id,
+    const rag_context = (ragRows ?? []).map((r) => ({
       content: r.content,
-      source: r.source,
+      source_type: r.source_type,
       metadata: r.metadata,
     }));
 
@@ -102,11 +100,14 @@ export class ResearchAgent extends BaseAgent {
       };
     }
 
+    const pd = (caseRow?.property_data ?? {}) as Record<string, unknown>;
+    const merged = { ...pd, market_context: parsed.market_context };
+
     const { error: updateErr } = await admin
       .from('cases')
       .update({
-        market_context: parsed.market_context,
-        status: 'research',
+        property_data: merged,
+        status: 'research_completed',
         updated_at: new Date().toISOString(),
       })
       .eq('id', caseId)

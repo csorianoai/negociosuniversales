@@ -22,7 +22,7 @@ export class IntakeAgent extends BaseAgent {
 
     const { data: caseRow, error: caseErr } = await admin
       .from('cases')
-      .select('id, property_data, address, city, sector, property_type')
+      .select('id, property_data')
       .eq('id', caseId)
       .eq('tenant_id', tenantId)
       .maybeSingle();
@@ -42,16 +42,15 @@ export class IntakeAgent extends BaseAgent {
 
     const { data: evidenceRows } = await admin
       .from('evidence')
-      .select('id, file_path, file_name, file_hash, mime_type')
+      .select('id, file_path, file_hash, file_type')
       .eq('case_id', caseId)
       .eq('tenant_id', tenantId);
 
     const evidence_files = (evidenceRows ?? []).map((r) => ({
       id: r.id,
       file_path: r.file_path,
-      file_name: r.file_name,
       file_hash: r.file_hash,
-      mime_type: r.mime_type,
+      file_type: r.file_type,
     }));
 
     const userMessage = JSON.stringify({
@@ -108,7 +107,7 @@ export class IntakeAgent extends BaseAgent {
       .from('cases')
       .update({
         property_data: parsed.property_data,
-        status: 'intake',
+        status: 'intake_completed',
         updated_at: new Date().toISOString(),
       })
       .eq('id', caseId)
