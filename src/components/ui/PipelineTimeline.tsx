@@ -1,84 +1,81 @@
 'use client';
 
 import { cn } from '@/lib/cn';
+import type { Case } from '@/core/types';
 
-const STEPS = ['intake', 'research', 'comparable', 'report', 'qa', 'compliance'] as const;
+const STAGES = ['intake', 'research', 'comparable', 'report', 'qa', 'compliance'] as const;
 
-const STATUS_TO_STEP: Record<string, number> = {
-  pending_intake: 0, intake_processing: 0, intake_completed: 1,
-  research_processing: 1, research_completed: 2,
-  comparable_processing: 2, comparable_completed: 3,
-  report_processing: 3, report_completed: 4,
-  qa_processing: 4, qa_passed: 5, qa_failed: 5,
-  compliance_processing: 5, compliance_passed: 6, compliance_failed: 6,
-  human_review: 6, approved: 6, delivered: 6, cancelled: 0,
-};
-
-function getStepIndex(status: string): number {
-  const i = STATUS_TO_STEP[status];
-  if (i !== undefined) return Math.min(i, 5);
-  const fallback = STEPS.indexOf(status as (typeof STEPS)[number]);
-  return fallback >= 0 ? fallback : 0;
-}
-
-const stepLabels: Record<string, string> = {
-  intake: 'Recepción',
-  research: 'Investigación',
+const STAGE_LABELS: Record<string, string> = {
+  intake: 'Intake',
+  research: 'Research',
   comparable: 'Comparables',
   report: 'Informe',
-  qa: 'Revisión QA',
-  compliance: 'Cumplimiento',
+  qa: 'QA',
+  compliance: 'Compliance',
 };
 
-interface PipelineTimelineProps {
-  currentStatus: string;
+function statusToStage(status: string): (typeof STAGES)[number] {
+  const s = status.toLowerCase();
+  if (['pending_intake', 'intake_processing', 'intake_completed'].includes(s)) return 'intake';
+  if (['research_processing', 'research_completed'].includes(s)) return 'research';
+  if (['comparable_processing', 'comparable_completed'].includes(s)) return 'comparable';
+  if (['report_processing', 'report_completed'].includes(s)) return 'report';
+  if (['qa_processing', 'qa_passed', 'qa_failed'].includes(s)) return 'qa';
+  if (['compliance_processing', 'compliance_passed', 'compliance_failed'].includes(s)) return 'compliance';
+  return 'intake';
 }
 
-export function PipelineTimeline({ currentStatus }: PipelineTimelineProps) {
-  const currentIndex = getStepIndex(currentStatus);
+function countByStage(cases: Case[]): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const stage of STAGES) counts[stage] = 0;
+  for (const c of cases) {
+    const stage = statusToStage(c.status);
+    counts[stage] = (counts[stage] ?? 0) + 1;
+  }
+  return counts;
+}
+
+interface PipelineTimelineProps {
+  cases?: Case[];
+  currentStatus?: string;
+}
+
+export function PipelineTimeline({ cases = [], currentStatus }: PipelineTimelineProps) {
+  const resolvedCases: Case[] =
+    cases.length > 0
+      ? cases
+      : currentStatus
+        ? [{ id: '', tenant_id: '', case_number: '', status: currentStatus, case_type: '', property_data: {}, assigned_appraiser: null, ai_confidence: null, ai_cost_usd: null, created_by: null, created_at: '', updated_at: '' }]
+        : [];
+  const counts = countByStage(resolvedCases);
 
   return (
-    <div className="flex flex-col md:flex-row md:items-center md:gap-4 md:flex-wrap">
-      {STEPS.map((step, i) => {
-        const state: 'done' | 'active' | 'pending' =
-          i < currentIndex ? 'done' : i === currentIndex ? 'active' : 'pending';
-        const label = stepLabels[step] ?? step;
-
+    <div className="flex gap-0.5">
+      {STAGES.map((stage, i) => {
+        const count = counts[stage] ?? 0;
+        const hasCount = count > 0;
         return (
           <div
-            key={step}
-            className="flex items-center gap-3 py-2 md:py-0"
-            title={label}
+            key={stage}
+            className={cn(
+              'flex-1 flex flex-col items-center justify-center py-3.5 px-2 bg-[var(--nu-card)] text-center',
+              hasCount && 'bg-[var(--nu-gold-dim)]',
+              i === 0 && 'rounded-l-xl',
+              i === STAGES.length - 1 && 'rounded-r-xl'
+            )}
           >
-            <div
-              className={cn(
-                'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium shrink-0 transition-colors duration-150',
-                state === 'done' && 'bg-[#15803D] text-white',
-                state === 'active' && 'bg-[#1D4ED8] text-white ring-2 ring-[#1D4ED8]/25',
-                state === 'pending' && 'bg-[#E5E7EB] text-[#6B7280]'
-              )}
-            >
-              {state === 'done' ? '✓' : label.charAt(0)}
-            </div>
             <span
               className={cn(
-                'font-medium text-sm',
-                state === 'done' && 'text-[#15803D]',
-                state === 'active' && 'text-[#1D4ED8]',
-                state === 'pending' && 'text-[#6B7280]'
+                'text-xl font-serif',
+                hasCount ? 'text-[var(--nu-gold)]' : 'text-[var(--nu-text-muted)]'
               )}
+              style={{ fontFamily: '"DM Serif Display", serif' }}
             >
-              {label}
+              {count}
             </span>
-            {i < STEPS.length - 1 && (
-              <div
-                className={cn(
-                  'hidden md:block w-8 h-0.5 flex-shrink-0',
-                  state === 'done' ? 'bg-[#15803D]' : 'bg-[#E5E7EB]'
-                )}
-                aria-hidden
-              />
-            )}
+            <span className="text-xs text-[var(--nu-text-muted)] uppercase mt-0.5">
+              {STAGE_LABELS[stage] ?? stage}
+            </span>
           </div>
         );
       })}

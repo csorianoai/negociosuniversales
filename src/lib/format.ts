@@ -56,3 +56,21 @@ export function formatRelativeDO(iso: string, base = new Date()): string {
     return '—';
   }
 }
+
+/** "Hace X min" / "Hace X horas" / "Hace X días" */
+export function formatRelativeShort(iso: string, base = new Date()): string {
+  try {
+    const d = new Date(iso);
+    const diff = base.getTime() - d.getTime();
+    const mins = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    if (mins < 1) return 'Ahora';
+    if (mins < 60) return `Hace ${mins} min`;
+    if (hours < 24) return `Hace ${hours} ${hours === 1 ? 'hora' : 'horas'}`;
+    if (days < 7) return `Hace ${days} ${days === 1 ? 'día' : 'días'}`;
+    return formatDateDO(iso);
+  } catch {
+    return '—';
+  }
+}

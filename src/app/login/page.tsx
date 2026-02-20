@@ -34,15 +34,30 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-start justify-center pt-20 px-4 bg-[#F6F8FB]">
+    <div
+      className="min-h-screen flex items-center justify-center px-4"
+      style={{ background: 'var(--nu-navy)' }}
+    >
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-lg shadow-[0_2px_4px_rgba(11,18,32,0.06)] border border-[#D8E0EA] p-8">
-          <h1 className="text-2xl font-bold text-[#1D4ED8] mb-6">
+        <div
+          className="rounded-2xl border border-[var(--nu-border)] p-8 shadow-2xl"
+          style={{ background: 'var(--nu-navy-light)' }}
+        >
+          <p
+            className="text-2xl font-serif text-[var(--nu-gold)] mb-1"
+            style={{ fontFamily: '"DM Serif Display", serif' }}
+          >
             Negocios Universales
-          </h1>
+          </p>
+          <p className="text-xs text-[var(--nu-text-muted)] uppercase tracking-widest mb-8">
+            Valuation OS
+          </p>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-[#0B1220] mb-1">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-[var(--nu-text-secondary)] mb-1"
+              >
                 Correo electrónico
               </label>
               <input
@@ -51,11 +66,15 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-4 py-2.5 border border-[#D8E0EA] rounded-md text-[#0B1220] placeholder:text-[#6B7280] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1D4ED8]/35 focus-visible:border-[#1D4ED8] transition-colors duration-150"
+                placeholder="tu@empresa.com"
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--nu-border)] bg-[var(--nu-navy)] text-[var(--nu-text)] placeholder:text-[var(--nu-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--nu-gold)]/50 focus:border-[var(--nu-gold)] transition-colors"
               />
             </div>
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-[#0B1220] mb-1">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-[var(--nu-text-secondary)] mb-1"
+              >
                 Contraseña
               </label>
               <input
@@ -64,20 +83,21 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full px-4 py-2.5 border border-[#D8E0EA] rounded-md text-[#0B1220] placeholder:text-[#6B7280] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1D4ED8]/35 focus-visible:border-[#1D4ED8] transition-colors duration-150"
+                placeholder="••••••••"
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--nu-border)] bg-[var(--nu-navy)] text-[var(--nu-text)] placeholder:text-[var(--nu-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--nu-gold)]/50 focus:border-[var(--nu-gold)] transition-colors"
               />
             </div>
             {error && (
-              <p className="text-sm text-[#B91C1C]" role="alert">
+              <p className="text-sm text-[var(--nu-red)]" role="alert">
                 {error}
               </p>
             )}
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 px-4 font-medium text-white rounded-md bg-[#1D4ED8] hover:bg-[#1D4ED8]/90 disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1D4ED8]/35 focus-visible:ring-offset-2"
+              className="w-full py-3 px-4 font-semibold rounded-lg bg-gradient-to-r from-[var(--nu-gold)] to-amber-600 text-[var(--nu-navy)] hover:shadow-lg hover:shadow-[var(--nu-gold)]/20 disabled:opacity-60 disabled:cursor-not-allowed transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)]/50"
             >
-              {loading ? 'Cargando...' : 'Iniciar Sesión'}
+              {loading ? 'Verificando...' : 'Iniciar Sesión'}
             </button>
           </form>
         </div>

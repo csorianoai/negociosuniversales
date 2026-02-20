@@ -106,17 +106,17 @@ export default function CaseDetailPage() {
       <div className="space-y-6 max-w-4xl">
         <Link
           href="/cases"
-          className="text-sm font-medium text-[#1D4ED8] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1D4ED8]/35 rounded"
+          className="text-sm font-medium text-[var(--nu-gold)] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)]/50 rounded"
         >
           ← Volver a Casos
         </Link>
 
         {loading ? (
-          <div className="py-12 text-center text-[#4B5563]">Cargando...</div>
+          <div className="py-12 text-center text-[var(--nu-text-muted)]">Cargando...</div>
         ) : error && !degraded ? (
           <Banner variant="error" message={error} onRetry={load} />
         ) : !data ? (
-          <div className="py-12 text-center text-[#4B5563]">Caso no encontrado</div>
+          <div className="py-12 text-center text-[var(--nu-text-muted)]">Caso no encontrado</div>
         ) : (
           <>
             {degraded && (
@@ -129,12 +129,12 @@ export default function CaseDetailPage() {
 
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <p className="text-sm text-[#6B7280] font-mono">{data.case_number}</p>
-                <h1 className="text-xl font-bold text-[#0B1220]">
+                <p className="text-sm text-[var(--nu-text-muted)] font-mono">{data.case_number}</p>
+                <h1 className="text-xl font-serif text-[var(--nu-text)]" style={{ fontFamily: '"DM Serif Display", serif' }}>
                   {propertyTypeLabel} — {addressDisplay}
                 </h1>
                 {data.ai_confidence != null && (
-                  <p className="text-sm text-[#4B5563] mt-1">Confianza AI: {(data.ai_confidence * 100).toFixed(0)}%</p>
+                  <p className="text-sm text-[var(--nu-text-secondary)] mt-1">Confianza AI: {(data.ai_confidence * 100).toFixed(0)}%</p>
                 )}
                 <StatusBadge status={data.status} />
               </div>
@@ -144,7 +144,7 @@ export default function CaseDetailPage() {
                     type="button"
                     onClick={handleRunPipeline}
                     disabled={running}
-                    className="px-4 py-2 text-white font-medium rounded-md bg-[#1D4ED8] hover:bg-[#1D4ED8]/90 disabled:opacity-60 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1D4ED8]/35 focus-visible:ring-offset-2"
+                    className="px-4 py-2 font-medium rounded-lg bg-[var(--nu-gold)] text-[var(--nu-navy)] hover:opacity-90 disabled:opacity-60 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)]/50"
                   >
                     {running ? 'Ejecutando...' : 'Ejecutar Pipeline'}
                   </button>
@@ -159,7 +159,7 @@ export default function CaseDetailPage() {
                       href={pdfPath}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="px-4 py-2 text-white font-medium rounded-md bg-[#1D4ED8] hover:bg-[#1D4ED8]/90 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1D4ED8]/35 focus-visible:ring-offset-2"
+                      className="px-4 py-2 font-medium rounded-lg bg-[var(--nu-gold)] text-[var(--nu-navy)] hover:opacity-90 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)]/50"
                     >
                       Ver Informe
                     </a>
@@ -168,23 +168,23 @@ export default function CaseDetailPage() {
               </div>
             </div>
 
-            <section className="bg-white rounded-lg border border-[#D8E0EA] p-6 shadow-[0_1px_2px_rgba(11,18,32,0.04)]">
-              <h2 className="font-semibold text-[#0B1220] mb-4">Pipeline</h2>
+            <section className="rounded-xl border border-[var(--nu-border)] bg-[var(--nu-card)] p-6">
+              <h2 className="font-semibold text-[var(--nu-text)] mb-4">Pipeline</h2>
               <PipelineTimeline currentStatus={data.status} />
             </section>
 
-            <section className="bg-white rounded-lg border border-[#D8E0EA] p-6 shadow-[0_1px_2px_rgba(11,18,32,0.04)]">
-              <h2 className="font-semibold text-[#0B1220] mb-4">Evidencia</h2>
+            <section className="rounded-xl border border-[var(--nu-border)] bg-[var(--nu-card)] p-6">
+              <h2 className="font-semibold text-[var(--nu-text)] mb-4">Evidencia</h2>
               {evidence.length === 0 ? (
-                <p className="text-[#4B5563]">Sin evidencia</p>
+                <p className="text-[var(--nu-text-muted)]">Sin evidencia</p>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   {evidence.map((e) => (
-                    <div key={e.id} className="border border-[#D8E0EA] rounded-md p-4">
-                      <p className="text-sm font-medium text-[#0B1220] truncate">
+                    <div key={e.id} className="border border-[var(--nu-border)] rounded-md p-4 bg-[var(--nu-navy-light)]">
+                      <p className="text-sm font-medium text-[var(--nu-text)] truncate">
                         {typeof e.file_path === 'string' ? e.file_path.split('/').pop() ?? 'Archivo' : 'Archivo'}
                       </p>
-                      <p className="text-xs text-[#6B7280] font-mono mt-1">{e.file_hash?.slice(0, 12) ?? '—'}</p>
+                      <p className="text-xs text-[var(--nu-text-muted)] font-mono mt-1">{e.file_hash?.slice(0, 12) ?? '—'}</p>
                     </div>
                   ))}
                 </div>
@@ -192,17 +192,17 @@ export default function CaseDetailPage() {
             </section>
 
             {comparables.length > 0 && (
-              <section className="bg-white rounded-lg border border-[#D8E0EA] p-6 shadow-[0_1px_2px_rgba(11,18,32,0.04)]">
-                <h2 className="font-semibold text-[#0B1220] mb-4">Comparables</h2>
+              <section className="rounded-xl border border-[var(--nu-border)] bg-[var(--nu-card)] p-6">
+                <h2 className="font-semibold text-[var(--nu-text)] mb-4">Comparables</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {comparables.map((c) => (
-                    <div key={c.id} className="border border-[#D8E0EA] rounded-md p-4">
-                      <p className="text-sm font-medium text-[#0B1220]">{c.address ?? 'Sin dirección'}</p>
-                      <p className="text-sm text-[#4B5563]">
+                    <div key={c.id} className="border border-[var(--nu-border)] rounded-md p-4 bg-[var(--nu-navy-light)]">
+                      <p className="text-sm font-medium text-[var(--nu-text)]">{c.address ?? 'Sin dirección'}</p>
+                      <p className="text-sm text-[var(--nu-text-secondary)]">
                         Precio: {c.price != null ? Number(c.price).toLocaleString() : '—'} USD
                       </p>
                       {c.similarity_score != null && (
-                        <p className="text-xs text-[#6B7280]">Similitud: {(c.similarity_score * 100).toFixed(0)}%</p>
+                        <p className="text-xs text-[var(--nu-text-muted)]">Similitud: {(c.similarity_score * 100).toFixed(0)}%</p>
                       )}
                     </div>
                   ))}
@@ -210,28 +210,28 @@ export default function CaseDetailPage() {
               </section>
             )}
 
-            <section className="bg-white rounded-lg border border-[#D8E0EA] p-6 shadow-[0_1px_2px_rgba(11,18,32,0.04)]">
-              <h2 className="font-semibold text-[#0B1220] mb-4">Datos de la propiedad</h2>
+            <section className="rounded-xl border border-[var(--nu-border)] bg-[var(--nu-card)] p-6">
+              <h2 className="font-semibold text-[var(--nu-text)] mb-4">Datos de la propiedad</h2>
               <dl className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                 {Object.entries(pd)
                   .filter(([k, v]) => v != null && v !== '' && !['market_context', 'report_markdown'].includes(k) && typeof v !== 'object')
                   .map(([k, v]) => (
                   <div key={k} className="flex gap-2">
-                    <dt className="text-[#6B7280] capitalize">{k.replace(/_/g, ' ')}:</dt>
-                    <dd className="text-[#0B1220]">{String(v)}</dd>
+                    <dt className="text-[var(--nu-text-muted)] capitalize">{k.replace(/_/g, ' ')}:</dt>
+                    <dd className="text-[var(--nu-text)]">{String(v)}</dd>
                   </div>
                 ))}
               </dl>
             </section>
 
-            <section className="bg-white rounded-lg border border-[#D8E0EA] p-6 shadow-[0_1px_2px_rgba(11,18,32,0.04)]">
-              <h2 className="font-semibold text-[#0B1220] mb-4">Informe</h2>
+            <section className="rounded-xl border border-[var(--nu-border)] bg-[var(--nu-card)] p-6">
+              <h2 className="font-semibold text-[var(--nu-text)] mb-4">Informe</h2>
               {reportMarkdown ? (
-                <div className="whitespace-pre-wrap text-sm text-[#4B5563] font-mono max-h-96 overflow-auto">
+                <div className="whitespace-pre-wrap text-sm text-[var(--nu-text-secondary)] font-mono max-h-96 overflow-auto bg-[var(--nu-navy-light)] rounded-lg p-4">
                   {reportMarkdown}
                 </div>
               ) : (
-                <p className="text-[#4B5563]">Informe pendiente.</p>
+                <p className="text-[var(--nu-text-muted)]">Informe pendiente.</p>
               )}
             </section>
           </>

@@ -1,33 +1,34 @@
 'use client';
 
+import { Check } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
 const STATUS_CONFIG: Record<
   string,
-  { label: string; dot: string; bg: string; border: string; text: string }
+  { label: string; dot: string; bg: string; text: string; pulse?: boolean }
 > = {
-  pending_intake: { label: 'Pendiente recepción', dot: 'bg-[#EAB308]', bg: 'bg-[#EAB308]/10', border: 'border-[#EAB308]/25', text: 'text-[#A16207]' },
-  intake_processing: { label: 'Procesando recepción', dot: 'bg-[#EAB308]', bg: 'bg-[#EAB308]/10', border: 'border-[#EAB308]/25', text: 'text-[#A16207]' },
-  intake_completed: { label: 'Recepción ok', dot: 'bg-[#38BDF8]', bg: 'bg-[#38BDF8]/10', border: 'border-[#38BDF8]/25', text: 'text-[#0284C7]' },
-  research_processing: { label: 'Investigando', dot: 'bg-[#38BDF8]', bg: 'bg-[#38BDF8]/10', border: 'border-[#38BDF8]/25', text: 'text-[#0284C7]' },
-  research_completed: { label: 'Investigación ok', dot: 'bg-[#38BDF8]', bg: 'bg-[#38BDF8]/10', border: 'border-[#38BDF8]/25', text: 'text-[#0284C7]' },
-  comparable_processing: { label: 'Comparables', dot: 'bg-[#1D4ED8]', bg: 'bg-[#1D4ED8]/10', border: 'border-[#1D4ED8]/25', text: 'text-[#1D4ED8]' },
-  comparable_completed: { label: 'Comparables ok', dot: 'bg-[#1D4ED8]', bg: 'bg-[#1D4ED8]/10', border: 'border-[#1D4ED8]/25', text: 'text-[#1D4ED8]' },
-  report_processing: { label: 'Informe', dot: 'bg-[#4F46E5]', bg: 'bg-[#4F46E5]/10', border: 'border-[#4F46E5]/25', text: 'text-[#4F46E5]' },
-  report_completed: { label: 'Informe ok', dot: 'bg-[#4F46E5]', bg: 'bg-[#4F46E5]/10', border: 'border-[#4F46E5]/25', text: 'text-[#4F46E5]' },
-  qa_processing: { label: 'Revisión QA', dot: 'bg-[#F97316]', bg: 'bg-[#F97316]/10', border: 'border-[#F97316]/25', text: 'text-[#C2410C]' },
-  qa_passed: { label: 'QA aprobado', dot: 'bg-[#86EFAC]', bg: 'bg-[#86EFAC]/30', border: 'border-[#22C55E]/25', text: 'text-[#15803D]' },
-  qa_failed: { label: 'QA rechazado', dot: 'bg-[#F87171]', bg: 'bg-[#F87171]/20', border: 'border-[#DC2626]/25', text: 'text-[#B91C1C]' },
-  compliance_processing: { label: 'Cumplimiento', dot: 'bg-[#F97316]', bg: 'bg-[#F97316]/10', border: 'border-[#F97316]/25', text: 'text-[#C2410C]' },
-  compliance_passed: { label: 'Cumplimiento ok', dot: 'bg-[#22C55E]', bg: 'bg-[#22C55E]/10', border: 'border-[#22C55E]/25', text: 'text-[#15803D]' },
-  compliance_failed: { label: 'Cumplimiento fallido', dot: 'bg-[#F87171]', bg: 'bg-[#F87171]/20', border: 'border-[#DC2626]/25', text: 'text-[#B91C1C]' },
-  human_review: { label: 'Revisión humana', dot: 'bg-[#A855F7]', bg: 'bg-[#A855F7]/10', border: 'border-[#A855F7]/25', text: 'text-[#7C3AED]' },
-  approved: { label: 'Aprobado', dot: 'bg-[#15803D]', bg: 'bg-[#15803D]/10', border: 'border-[#15803D]/25', text: 'text-[#15803D]' },
-  delivered: { label: 'Entregado', dot: 'bg-[#15803D]', bg: 'bg-[#15803D]/10', border: 'border-[#15803D]/25', text: 'text-[#15803D]' },
-  cancelled: { label: 'Cancelado', dot: 'bg-[#6B7280]', bg: 'bg-[#6B7280]/10', border: 'border-[#6B7280]/25', text: 'text-[#4B5563]' },
+  pending_intake: { label: 'Pendiente', dot: 'bg-orange-400', bg: 'bg-orange-500/10', text: 'text-orange-400' },
+  intake_processing: { label: 'Intake...', dot: 'bg-blue-400', bg: 'bg-blue-400/10', text: 'text-blue-400', pulse: true },
+  intake_completed: { label: 'Intake OK', dot: 'bg-blue-400', bg: 'bg-blue-400/10', text: 'text-blue-400' },
+  research_processing: { label: 'Research...', dot: 'bg-blue-500', bg: 'bg-blue-500/10', text: 'text-blue-500', pulse: true },
+  research_completed: { label: 'Research OK', dot: 'bg-blue-500', bg: 'bg-blue-500/10', text: 'text-blue-500' },
+  comparable_processing: { label: 'Comparables...', dot: 'bg-indigo-400', bg: 'bg-indigo-400/10', text: 'text-indigo-400', pulse: true },
+  comparable_completed: { label: 'Comparables OK', dot: 'bg-indigo-400', bg: 'bg-indigo-400/10', text: 'text-indigo-400' },
+  report_processing: { label: 'Informe...', dot: 'bg-purple-400', bg: 'bg-purple-400/10', text: 'text-purple-400', pulse: true },
+  report_completed: { label: 'Informe OK', dot: 'bg-purple-400', bg: 'bg-purple-400/10', text: 'text-purple-400' },
+  qa_processing: { label: 'QA...', dot: 'bg-orange-400', bg: 'bg-orange-400/10', text: 'text-orange-400', pulse: true },
+  qa_passed: { label: 'QA Aprobado', dot: 'bg-emerald-400', bg: 'bg-emerald-400/10', text: 'text-emerald-400' },
+  qa_failed: { label: 'QA Rechazado', dot: 'bg-red-400', bg: 'bg-red-400/10', text: 'text-red-400' },
+  compliance_processing: { label: 'Compliance...', dot: 'bg-orange-400', bg: 'bg-orange-400/10', text: 'text-orange-400', pulse: true },
+  compliance_passed: { label: 'Compliance OK', dot: 'bg-emerald-400', bg: 'bg-emerald-400/10', text: 'text-emerald-400' },
+  compliance_failed: { label: 'Compliance Fallido', dot: 'bg-red-400', bg: 'bg-red-400/10', text: 'text-red-400' },
+  human_review: { label: 'Revisión humana', dot: 'bg-purple-400', bg: 'bg-purple-400/10', text: 'text-purple-400' },
+  approved: { label: 'Aprobado', dot: 'bg-emerald-400', bg: 'bg-emerald-400/10', text: 'text-emerald-400' },
+  delivered: { label: 'Entregado', dot: 'bg-emerald-500', bg: 'bg-emerald-500/10', text: 'text-emerald-500' },
+  cancelled: { label: 'Cancelado', dot: 'bg-slate-400', bg: 'bg-slate-400/10', text: 'text-slate-400' },
 };
 
-const DEFAULT_CONFIG = { label: 'Desconocido', dot: 'bg-[#6B7280]', bg: 'bg-[#6B7280]/8', border: 'border-[#6B7280]/20', text: 'text-[#4B5563]' };
+const DEFAULT_CONFIG = { label: '', dot: 'bg-slate-400', bg: 'bg-slate-400/10', text: 'text-slate-500' };
 
 interface StatusBadgeProps {
   status: string;
@@ -35,19 +36,26 @@ interface StatusBadgeProps {
 
 export function StatusBadge({ status }: StatusBadgeProps) {
   const key = status.toLowerCase();
-  const config = STATUS_CONFIG[key] ?? DEFAULT_CONFIG;
+  const config = STATUS_CONFIG[key] ?? { ...DEFAULT_CONFIG, label: status };
 
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium border',
+        'inline-flex items-center gap-1.5 rounded-full py-1 px-3 text-xs font-semibold',
         config.bg,
-        config.border,
         config.text
       )}
     >
-      <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', config.dot)} aria-hidden />
+      <span
+        className={cn(
+          'w-1.5 h-1.5 rounded-full shrink-0',
+          config.dot,
+          config.pulse && 'nu-pulse'
+        )}
+        aria-hidden
+      />
       {config.label}
+      {status === 'delivered' && <Check className="w-3 h-3 ml-0.5" />}
     </span>
   );
 }

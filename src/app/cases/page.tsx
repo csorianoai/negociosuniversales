@@ -31,17 +31,17 @@ const STATUS_GROUPS = [
 ] as const;
 
 const columns: DataTableColumn<Case>[] = [
-  { key: 'case_number', header: 'Caso', render: (r) => <span className="font-mono text-[#4B5563]">{r.case_number}</span> },
-  { key: 'address', header: 'Dirección', render: (r) => getPropertyAddress(r.property_data) ?? 'Sin dirección' },
+  { key: 'case_number', header: 'Caso', render: (r) => <span className="font-mono text-[var(--nu-gold)]">{r.case_number}</span> },
+  { key: 'address', header: 'Dirección', render: (r) => <span className="text-[var(--nu-text-secondary)]">{getPropertyAddress(r.property_data) ?? 'Sin dirección'}</span> },
   { key: 'status', header: 'Status', render: (r) => <StatusBadge status={r.status} /> },
-  { key: 'date', header: 'Fecha', render: (r) => formatDateDO(r.created_at) },
+  { key: 'date', header: 'Fecha', render: (r) => <span className="text-[var(--nu-text-muted)]">{formatDateDO(r.created_at)}</span> },
   {
     key: 'action',
     header: 'Acción',
     render: (r) => (
       <Link
         href={`/cases/${r.id}`}
-        className="font-medium text-[#1D4ED8] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1D4ED8]/35 focus-visible:ring-offset-2 rounded"
+        className="font-medium text-[var(--nu-gold)] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)]/50 rounded"
       >
         Ver
       </Link>
@@ -133,10 +133,10 @@ export default function CasesPage() {
     <AppLayout>
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <h1 className="text-2xl font-bold text-[#0B1220]">Casos</h1>
+          <h1 className="text-2xl font-serif text-[var(--nu-text)]" style={{ fontFamily: '"DM Serif Display", serif' }}>Casos</h1>
           <Link
             href="/cases/new"
-            className="inline-flex items-center justify-center px-4 py-2 font-medium text-white rounded-md bg-[#1D4ED8] hover:bg-[#1D4ED8]/90 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1D4ED8]/35 focus-visible:ring-offset-2 shrink-0"
+            className="inline-flex items-center justify-center px-4 py-2 font-medium rounded-lg bg-[var(--nu-gold)] text-[var(--nu-navy)] hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)]/50 shrink-0"
           >
             Nuevo Caso
           </Link>
@@ -154,7 +154,7 @@ export default function CasesPage() {
 
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="relative flex-1">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B7280]" aria-hidden>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--nu-text-muted)]" aria-hidden>
               🔍
             </span>
             <input
@@ -162,13 +162,13 @@ export default function CasesPage() {
               placeholder="Buscar por dirección..."
               value={searchRaw}
               onChange={(e) => setSearchRaw(e.target.value)}
-              className="w-full pl-10 pr-10 py-2 border border-[#D8E0EA] rounded-md bg-white text-[#0B1220] placeholder:text-[#6B7280] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1D4ED8]/35 focus-visible:border-[#1D4ED8] transition-colors duration-150"
+              className="w-full pl-10 pr-10 py-2 border border-[var(--nu-border)] rounded-lg bg-[var(--nu-navy-light)] text-[var(--nu-text)] placeholder:text-[var(--nu-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--nu-gold)]/50 focus:border-[var(--nu-gold)] transition-colors"
             />
             {searchRaw && (
               <button
                 type="button"
                 onClick={() => setSearchRaw('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6B7280] hover:text-[#0B1220] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1D4ED8]/35 rounded"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--nu-text-muted)] hover:text-[var(--nu-text)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)]/50 rounded"
                 aria-label="Limpiar búsqueda"
               >
                 ×
@@ -186,10 +186,10 @@ export default function CasesPage() {
                 key={g.key}
                 type="button"
                 onClick={() => { setStatusFilter(g.key); setPage(1); }}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1D4ED8]/35 focus-visible:ring-offset-2 ${
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)]/50 ${
                   active
-                    ? 'bg-[#1D4ED8] text-white'
-                    : 'bg-white border border-[#D8E0EA] text-[#4B5563] hover:bg-[#F1F4F8]'
+                    ? 'bg-[var(--nu-gold)] text-[var(--nu-navy)]'
+                    : 'bg-[var(--nu-card)] border border-[var(--nu-border)] text-[var(--nu-text-secondary)] hover:bg-[var(--nu-card-hover)] hover:text-[var(--nu-text)]'
                 }`}
               >
                 {g.label} ({count})
@@ -198,7 +198,7 @@ export default function CasesPage() {
           })}
         </div>
 
-        <div className="bg-white rounded-lg border border-[#D8E0EA] shadow-[0_1px_2px_rgba(11,18,32,0.04)] overflow-hidden">
+        <div className="rounded-xl border border-[var(--nu-border)] bg-[var(--nu-card)] overflow-hidden">
           {loading ? (
             <DataTable columns={columns} data={[]} keyFn={(r) => r.id} loading />
           ) : paginated.length === 0 ? (
@@ -206,7 +206,7 @@ export default function CasesPage() {
           ) : (
             <>
               <DataTable columns={columns} data={paginated} keyFn={(r) => r.id} />
-              <div className="px-6 py-4 border-t border-[#D8E0EA] flex items-center justify-between text-sm text-[#4B5563]">
+              <div className="px-6 py-4 border-t border-[var(--nu-border)] flex items-center justify-between text-sm text-[var(--nu-text-muted)]">
                 <span>
                   Mostrando {from}–{to} de {filtered.length}
                 </span>
@@ -215,7 +215,7 @@ export default function CasesPage() {
                     type="button"
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={page <= 1}
-                    className="px-3 py-1 rounded border border-[#D8E0EA] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#F1F4F8] transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1D4ED8]/35"
+                    className="px-3 py-1 rounded border border-[var(--nu-border)] bg-[var(--nu-card)] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--nu-card-hover)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)]/50"
                   >
                     Anterior
                   </button>
@@ -226,7 +226,7 @@ export default function CasesPage() {
                     type="button"
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                     disabled={page >= totalPages}
-                    className="px-3 py-1 rounded border border-[#D8E0EA] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#F1F4F8] transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1D4ED8]/35"
+                    className="px-3 py-1 rounded border border-[var(--nu-border)] bg-[var(--nu-card)] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--nu-card-hover)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)]/50"
                   >
                     Siguiente
                   </button>

@@ -28,12 +28,12 @@ export function DataTable<T>({
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-[#D8E0EA]">
+            <tr className="border-b border-[var(--nu-border)]">
               {columns.map((col) => (
                 <th
                   key={col.key}
                   className={cn(
-                    'px-6 py-3 text-left text-xs font-medium text-[#4B5563] uppercase tracking-wider sticky top-0 bg-[#F1F4F8]',
+                    'px-6 py-3 text-left text-xs font-medium text-[var(--nu-text-muted)] uppercase tracking-wider sticky top-0 bg-[var(--nu-card)]',
                     col.align === 'right' && 'text-right'
                   )}
                 >
@@ -44,7 +44,7 @@ export function DataTable<T>({
           </thead>
           <tbody>
             {Array.from({ length: 5 }).map((_, i) => (
-              <tr key={i} className="border-b border-[#D8E0EA]/60">
+              <tr key={i} className="border-b border-[var(--nu-border)]/60">
                 {columns.map((col) => (
                   <td key={col.key} className="px-6 py-4">
                     <Skeleton className="h-4 w-full max-w-[120px]" />
@@ -62,12 +62,12 @@ export function DataTable<T>({
     <div className="overflow-x-auto">
       <table className="w-full">
         <thead>
-          <tr className="border-b border-[#D8E0EA] bg-[#F1F4F8]">
-            {columns.map((col) => (
-              <th
-                key={col.key}
-                className={cn(
-                  'px-6 py-3 text-left text-xs font-medium text-[#4B5563] uppercase tracking-wider sticky top-0 bg-[#F1F4F8]',
+          <tr className="border-b border-[var(--nu-border)] bg-[var(--nu-card)]">
+              {columns.map((col) => (
+                <th
+                  key={col.key}
+                  className={cn(
+                    'px-6 py-3 text-left text-xs font-medium text-[var(--nu-text-muted)] uppercase tracking-wider sticky top-0 bg-[var(--nu-card)]',
                   col.align === 'right' && 'text-right'
                 )}
               >
@@ -80,13 +80,13 @@ export function DataTable<T>({
           {data.map((row) => (
             <tr
               key={keyFn(row)}
-              className="border-b border-[#D8E0EA]/60 transition-colors duration-150 hover:bg-[#F1F4F8]/50"
+              className="border-b border-[var(--nu-border)]/60 transition-colors duration-150 hover:bg-[var(--nu-card-hover)]"
             >
               {columns.map((col) => (
                 <td
                   key={col.key}
                   className={cn(
-                    'px-6 py-4 text-sm text-[#0B1220]',
+                    'px-6 py-4 text-sm text-[var(--nu-text)]',
                     col.align === 'right' && 'text-right font-tabular'
                   )}
                 >

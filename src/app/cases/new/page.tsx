@@ -155,24 +155,24 @@ export default function NewCasePage() {
   }
 
   const inputClass =
-    'w-full px-4 py-2.5 border rounded-md text-[#0B1220] placeholder:text-[#6B7280] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1D4ED8]/35 focus-visible:border-[#1D4ED8] transition-colors duration-150';
-  const inputErrorClass = 'border-[#B91C1C]';
+    'w-full px-4 py-2.5 border border-[var(--nu-border)] rounded-lg bg-[var(--nu-navy-light)] text-[var(--nu-text)] placeholder:text-[var(--nu-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--nu-gold)]/50 focus:border-[var(--nu-gold)] transition-colors';
+  const inputErrorClass = 'border-[var(--nu-red)]';
 
   return (
     <AppLayout>
       <div className="space-y-6 max-w-2xl">
         <Link
           href="/cases"
-          className="text-sm font-medium text-[#1D4ED8] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1D4ED8]/35 rounded"
+          className="text-sm font-medium text-[var(--nu-gold)] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)]/50 rounded"
         >
           ← Volver a Casos
         </Link>
 
-        <h1 className="text-2xl font-bold text-[#0B1220]">Nuevo Caso</h1>
+        <h1 className="text-2xl font-serif text-[var(--nu-text)]" style={{ fontFamily: '"DM Serif Display", serif' }}>Nuevo Caso</h1>
 
-        <div className="w-full bg-[#E5E7EB] rounded-full h-2 overflow-hidden">
+        <div className="w-full bg-[var(--nu-navy-mid)] rounded-full h-2 overflow-hidden">
           <div
-            className="h-full rounded-full bg-[#1D4ED8] transition-all duration-[180ms]"
+            className="h-full rounded-full bg-[var(--nu-gold)] transition-all duration-[180ms]"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -180,10 +180,10 @@ export default function NewCasePage() {
         {error && <Banner variant="error" message={error} />}
 
         {currentStep === 1 && (
-          <div className="space-y-4 bg-white rounded-lg border border-[#D8E0EA] p-6 shadow-[0_1px_2px_rgba(11,18,32,0.04)]">
-            <h2 className="font-semibold text-[#0B1220]">Paso 1: Datos básicos</h2>
+          <div className="space-y-4 rounded-xl border border-[var(--nu-border)] bg-[var(--nu-card)] p-6">
+            <h2 className="font-semibold text-[var(--nu-text)]">Paso 1: Datos básicos</h2>
             <div>
-              <label className="block text-sm font-medium text-[#0B1220] mb-1">Tipo de propiedad *</label>
+              <label className="block text-sm font-medium text-[var(--nu-text-secondary)] mb-1">Tipo de propiedad *</label>
               <select
                 value={formData.property_type}
                 onChange={(e) => updateField('property_type', e.target.value)}
@@ -195,7 +195,7 @@ export default function NewCasePage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#0B1220] mb-1">Dirección *</label>
+              <label className="block text-sm font-medium text-[var(--nu-text-secondary)] mb-1">Dirección *</label>
               <input
                 type="text"
                 value={formData.address}
@@ -203,20 +203,20 @@ export default function NewCasePage() {
                 required
                 className={cn(inputClass, fieldErrors.address && inputErrorClass)}
               />
-              {fieldErrors.address && <p className="text-sm text-[#B91C1C] mt-1">{fieldErrors.address}</p>}
+              {fieldErrors.address && <p className="text-sm text-[var(--nu-red)] mt-1">{fieldErrors.address}</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#0B1220] mb-1">Ciudad</label>
+              <label className="block text-sm font-medium text-[var(--nu-text-secondary)] mb-1">Ciudad</label>
               <input type="text" value={formData.city} onChange={(e) => updateField('city', e.target.value)} className={inputClass} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#0B1220] mb-1">Sector</label>
+              <label className="block text-sm font-medium text-[var(--nu-text-secondary)] mb-1">Sector</label>
               <input type="text" value={formData.sector} onChange={(e) => updateField('sector', e.target.value)} className={inputClass} />
             </div>
             <button
               type="button"
               onClick={() => validateStep(1) && setCurrentStep(2)}
-              className="w-full py-3 text-white font-medium rounded-md bg-[#1D4ED8] hover:bg-[#1D4ED8]/90 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1D4ED8]/35 focus-visible:ring-offset-2"
+              className="w-full py-3 font-medium rounded-lg bg-[var(--nu-gold)] text-[var(--nu-navy)] hover:opacity-90 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)]/50"
             >
               Siguiente
             </button>
@@ -224,8 +224,8 @@ export default function NewCasePage() {
         )}
 
         {currentStep === 2 && (
-          <div className="space-y-4 bg-white rounded-lg border border-[#D8E0EA] p-6 shadow-[0_1px_2px_rgba(11,18,32,0.04)]">
-            <h2 className="font-semibold text-[#0B1220]">Paso 2: Características</h2>
+          <div className="space-y-4 rounded-xl border border-[var(--nu-border)] bg-[var(--nu-card)] p-6">
+            <h2 className="font-semibold text-[var(--nu-text)]">Paso 2: Características</h2>
             <div className="grid grid-cols-2 gap-4">
               {[
                 { k: 'area_m2' as const, l: 'Área m²' },
@@ -236,13 +236,13 @@ export default function NewCasePage() {
                 { k: 'year_built' as const, l: 'Año construcción' },
               ].map(({ k, l }) => (
                 <div key={k}>
-                  <label className="block text-sm font-medium text-[#0B1220] mb-1">{l}</label>
+                  <label className="block text-sm font-medium text-[var(--nu-text-secondary)] mb-1">{l}</label>
                   <input type="number" value={formData[k]} onChange={(e) => updateField(k, e.target.value)} className={inputClass} />
                 </div>
               ))}
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#0B1220] mb-1">Condición</label>
+              <label className="block text-sm font-medium text-[var(--nu-text-secondary)] mb-1">Condición</label>
               <select value={formData.condition} onChange={(e) => updateField('condition', e.target.value)} className={inputClass}>
                 {CONDITION_OPTIONS.map((c) => (
                   <option key={c} value={c}>{c}</option>
@@ -253,14 +253,14 @@ export default function NewCasePage() {
               <button
                 type="button"
                 onClick={() => setCurrentStep(1)}
-                className="flex-1 py-3 border border-[#D8E0EA] font-medium rounded-md text-[#4B5563] hover:bg-[#F1F4F8] transition-colors duration-150"
+                className="flex-1 py-3 border border-[var(--nu-border)] font-medium rounded-lg text-[var(--nu-text-secondary)] hover:bg-[var(--nu-card-hover)] transition-colors"
               >
                 Atrás
               </button>
               <button
                 type="button"
                 onClick={() => setCurrentStep(3)}
-                className="flex-1 py-3 text-white font-medium rounded-md bg-[#1D4ED8] hover:bg-[#1D4ED8]/90 transition-colors duration-150"
+                className="flex-1 py-3 font-medium rounded-lg bg-[var(--nu-gold)] text-[var(--nu-navy)] hover:opacity-90 transition-colors"
               >
                 Siguiente
               </button>
@@ -269,19 +269,19 @@ export default function NewCasePage() {
         )}
 
         {currentStep === 3 && (
-          <div className="space-y-4 bg-white rounded-lg border border-[#D8E0EA] p-6 shadow-[0_1px_2px_rgba(11,18,32,0.04)]">
-            <h2 className="font-semibold text-[#0B1220]">Paso 3: Evidencia</h2>
-            <p className="text-sm text-[#4B5563]">Imágenes o PDF. Máx. {MAX_FILES} archivos, {MAX_FILE_SIZE_MB} MB c/u.</p>
+          <div className="space-y-4 rounded-xl border border-[var(--nu-border)] bg-[var(--nu-card)] p-6">
+            <h2 className="font-semibold text-[var(--nu-text)]">Paso 3: Evidencia</h2>
+            <p className="text-sm text-[var(--nu-text-muted)]">Imágenes o PDF. Máx. {MAX_FILES} archivos, {MAX_FILE_SIZE_MB} MB c/u.</p>
             <div
-              className="border-2 border-dashed border-[#D8E0EA] rounded-lg p-8 text-center cursor-pointer hover:border-[#1D4ED8]/50 hover:bg-[#1D4ED8]/[0.02] transition-colors duration-150 focus-within:ring-2 focus-within:ring-[#1D4ED8]/35"
+              className="border-2 border-dashed border-slate-600 rounded-lg p-8 text-center cursor-pointer hover:border-[var(--nu-gold)] hover:bg-[var(--nu-gold-dim)] transition-colors focus-within:ring-2 focus-within:ring-[var(--nu-gold)]/50"
               onClick={() => fileInputRef.current?.click()}
               onKeyDown={(e) => e.key === 'Enter' && fileInputRef.current?.click()}
               role="button"
               tabIndex={0}
             >
               <input ref={fileInputRef} type="file" accept="image/*,.pdf" multiple onChange={handleFileChange} className="hidden" />
-              <p className="text-[#4B5563]">Clic para subir</p>
-              <p className="text-sm text-[#6B7280] mt-1">
+              <p className="text-[var(--nu-text-secondary)]">Clic para subir</p>
+              <p className="text-sm text-[var(--nu-text-muted)] mt-1">
                 {files.length} / {MAX_FILES} archivos
               </p>
             </div>
@@ -295,7 +295,7 @@ export default function NewCasePage() {
                     <button
                       type="button"
                       onClick={() => removeFile(id)}
-                      className="text-[#B91C1C] hover:text-[#B91C1C]/80 text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1D4ED8]/35 rounded"
+                      className="text-[var(--nu-red)] hover:opacity-80 text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)]/50 rounded"
                     >
                       Eliminar
                     </button>
@@ -307,14 +307,14 @@ export default function NewCasePage() {
               <button
                 type="button"
                 onClick={() => setCurrentStep(2)}
-                className="flex-1 py-3 border border-[#D8E0EA] font-medium rounded-md text-[#4B5563] hover:bg-[#F1F4F8] transition-colors duration-150"
+                className="flex-1 py-3 border border-[var(--nu-border)] font-medium rounded-lg text-[var(--nu-text-secondary)] hover:bg-[var(--nu-card-hover)] transition-colors"
               >
                 Atrás
               </button>
               <button
                 type="button"
                 onClick={() => setCurrentStep(4)}
-                className="flex-1 py-3 text-white font-medium rounded-md bg-[#1D4ED8] hover:bg-[#1D4ED8]/90 transition-colors duration-150"
+                className="flex-1 py-3 font-medium rounded-lg bg-[var(--nu-gold)] text-[var(--nu-navy)] hover:opacity-90 transition-colors"
               >
                 Siguiente
               </button>
@@ -323,28 +323,28 @@ export default function NewCasePage() {
         )}
 
         {currentStep === 4 && (
-          <div className="space-y-4 bg-white rounded-lg border border-[#D8E0EA] p-6 shadow-[0_1px_2px_rgba(11,18,32,0.04)]">
-            <h2 className="font-semibold text-[#0B1220]">Paso 4: Resumen</h2>
-            <div className="space-y-2 text-sm text-[#4B5563]">
-              <p><strong className="text-[#0B1220]">Tipo:</strong> {formData.property_type}</p>
-              <p><strong className="text-[#0B1220]">Dirección:</strong> {formData.address}</p>
-              <p><strong className="text-[#0B1220]">Ciudad:</strong> {formData.city}</p>
-              <p><strong className="text-[#0B1220]">Sector:</strong> {formData.sector || '—'}</p>
-              <p><strong className="text-[#0B1220]">Área:</strong> {formData.area_m2 || '—'} m²</p>
-              <p><strong className="text-[#0B1220]">Archivos:</strong> {files.length}</p>
+          <div className="space-y-4 rounded-xl border border-[var(--nu-border)] bg-[var(--nu-card)] p-6">
+            <h2 className="font-semibold text-[var(--nu-text)]">Paso 4: Resumen</h2>
+            <div className="space-y-2 text-sm text-[var(--nu-text-secondary)]">
+              <p><strong className="text-[var(--nu-text)]">Tipo:</strong> {formData.property_type}</p>
+              <p><strong className="text-[var(--nu-text)]">Dirección:</strong> {formData.address}</p>
+              <p><strong className="text-[var(--nu-text)]">Ciudad:</strong> {formData.city}</p>
+              <p><strong className="text-[var(--nu-text)]">Sector:</strong> {formData.sector || '—'}</p>
+              <p><strong className="text-[var(--nu-text)]">Área:</strong> {formData.area_m2 || '—'} m²</p>
+              <p><strong className="text-[var(--nu-text)]">Archivos:</strong> {files.length}</p>
             </div>
             <button
               type="button"
               onClick={handleSubmit}
               disabled={submitting}
-              className="w-full py-4 text-white font-semibold rounded-md bg-[#1D4ED8] hover:bg-[#1D4ED8]/90 disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1D4ED8]/35 focus-visible:ring-offset-2"
+              className="w-full py-4 font-semibold rounded-lg bg-[var(--nu-gold)] text-[var(--nu-navy)] hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)]/50"
             >
               {submitting ? 'Creando...' : 'Crear Caso e Iniciar Tasación'}
             </button>
             <button
               type="button"
               onClick={() => setCurrentStep(3)}
-              className="w-full py-2 border border-[#D8E0EA] font-medium rounded-md text-[#4B5563] hover:bg-[#F1F4F8] transition-colors duration-150"
+              className="w-full py-2 border border-[var(--nu-border)] font-medium rounded-lg text-[var(--nu-text-secondary)] hover:bg-[var(--nu-card-hover)] transition-colors"
             >
               Atrás
             </button>

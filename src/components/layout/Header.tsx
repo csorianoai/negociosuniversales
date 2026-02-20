@@ -1,8 +1,8 @@
 'use client';
 
-import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { LogOut } from 'lucide-react';
 import { createClient } from '@/lib/supabase-client';
 import { cn } from '@/lib/cn';
 import { DEMO_MODE } from '@/lib/demo-data';
@@ -10,28 +10,46 @@ import { DEMO_MODE } from '@/lib/demo-data';
 const pathLabels: Record<string, string> = {
   dashboard: 'Dashboard',
   cases: 'Casos',
-  new: 'Nuevo',
+  new: 'Nuevo Caso',
 };
 
-function getBreadcrumbs(pathname: string): { href: string; label: string }[] {
+function getPageTitle(pathname: string): string {
   const segments = pathname.split('/').filter(Boolean);
-  const crumbs: { href: string; label: string }[] = [];
-  let href = '';
-  for (let i = 0; i < segments.length; i++) {
-    href += '/' + segments[i];
-    const seg = segments[i];
-    const label =
-      pathLabels[seg] ??
-      (seg.length === 36 ? 'Detalle' : seg.charAt(0).toUpperCase() + seg.slice(1));
-    crumbs.push({ href, label });
-  }
-  return crumbs;
+  if (segments.length === 0) return 'Dashboard';
+  const last = segments[segments.length - 1];
+  if (pathLabels[last]) return pathLabels[last];
+  if (last.length === 36) return 'Detalle del Caso';
+  return last.charAt(0).toUpperCase() + last.slice(1);
+}
+
+function formatHeaderDate(): string {
+  const d = new Date();
+  const day = d.getDate();
+  const months = [
+    'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+    'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+  ];
+  const month = months[d.getMonth()];
+  const year = d.getFullYear();
+  const time = d.toLocaleTimeString('es-DO', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+  return `${day} ${month} ${year} · ${time}`;
 }
 
 export function Header() {
   const router = useRouter();
   const pathname = usePathname();
   const [email, setEmail] = useState<string>('');
+  const [dateStr, setDateStr] = useState<string>('');
+
+  useEffect(() => {
+    setDateStr(formatHeaderDate());
+    const t = setInterval(() => setDateStr(formatHeaderDate()), 60000);
+    return () => clearInterval(t);
+  }, []);
 
   useEffect(() => {
     const supabase = createClient();
@@ -46,72 +64,48 @@ export function Header() {
     router.push('/login');
   }
 
-  const breadcrumbs = getBreadcrumbs(pathname);
-
-  function getInitials(e: string): string {
-    const parts = e.split('@')[0].split(/[._-]/);
-    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-    return e.slice(0, 2).toUpperCase();
-  }
+  const pageTitle = getPageTitle(pathname);
 
   return (
     <header
       className={cn(
-        'sticky top-0 z-20 h-16 bg-white border-b border-[#D8E0EA]',
-        'flex items-center justify-between px-6',
-        'shadow-[0_1px_2px_rgba(11,18,32,0.04)]'
+        'sticky top-0 z-10 flex items-center justify-between px-8 py-4',
+        'bg-[var(--nu-navy)]/80 backdrop-blur-[20px] border-b border-[var(--nu-border)]'
       )}
     >
-      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm">
-        {breadcrumbs.map((crumb, i) => (
-          <span key={crumb.href} className="flex items-center gap-2">
-            {i > 0 && (
-              <span className="text-[#6B7280]" aria-hidden>
-                ›
-              </span>
-            )}
-            <Link
-              href={crumb.href}
-              className={cn(
-                'font-medium transition-colors duration-150',
-                i === breadcrumbs.length - 1
-                  ? 'text-[#0B1220]'
-                  : 'text-[#4B5563] hover:text-[#1D4ED8]'
-              )}
-            >
-              {crumb.label}
-            </Link>
-          </span>
-        ))}
-      </nav>
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-0.5">
+        <h1
+          className="text-xl font-serif text-[var(--nu-text)]"
+          style={{ fontFamily: '"DM Serif Display", serif' }}
+        >
+          {pageTitle}
+        </h1>
+        <p className="text-sm text-[var(--nu-text-muted)]">{dateStr}</p>
+      </div>
+      <div className="flex items-center gap-4">
         {DEMO_MODE && (
-          <span className="text-xs font-medium px-2 py-1 rounded bg-[#FEF3C7] text-[#92400E]">
+          <span className="text-xs font-medium px-2 py-1 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
             DEMO
           </span>
         )}
         <span
-          className="text-sm text-[#4B5563] truncate max-w-[180px]"
+          className="text-sm text-[var(--nu-text-secondary)] truncate max-w-[200px]"
           title={email || ''}
         >
           {email || (DEMO_MODE ? 'Usuario Demo' : 'Cargando...')}
         </span>
-        <div
-          className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold bg-[#1D4ED8]/8 text-[#1D4ED8]"
-          aria-hidden
-        >
-          {email ? getInitials(email) : '—'}
-        </div>
         <button
           type="button"
           onClick={handleLogout}
           className={cn(
-            'px-3 py-1.5 text-sm font-medium text-[#4B5563]',
-            'rounded-md transition-colors duration-150',
-            'hover:bg-[#FEE2E2] hover:text-[#B91C1C]',
-            'focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1D4ED8]/35 focus-visible:ring-offset-2'
+            'flex items-center gap-2 px-3 py-2 text-sm font-medium',
+            'text-[var(--nu-text-muted)] hover:text-[var(--nu-text)]',
+            'rounded-lg transition-colors',
+            'focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--nu-navy)]'
           )}
+          aria-label="Cerrar sesión"
         >
+          <LogOut className="w-4 h-4" />
           Cerrar Sesión
         </button>
       </div>
