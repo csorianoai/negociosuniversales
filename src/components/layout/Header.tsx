@@ -12,7 +12,10 @@ const pathLabels: Record<string, string> = {
   cases: 'Casos',
   new: 'Nuevo Caso',
   billing: 'Facturación',
+  costs: 'Costos AI',
   metrics: 'Métricas & Analytics',
+  settings: 'Configuración',
+  audit: 'Auditoría',
 };
 
 function getPageTitle(pathname: string): string {

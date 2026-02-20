@@ -10,7 +10,8 @@ import {
   Receipt,
   DollarSign,
   BarChart3,
-  Settings,
+  Settings2,
+  ChevronDown,
   Shield,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase-client';
@@ -31,12 +32,13 @@ const principalItems: NavItem[] = [
 
 const gerenciaItems: NavItem[] = [
   { href: '/billing', label: 'Facturación', icon: Receipt },
-  { href: '/metrics', label: 'Costos AI', icon: DollarSign },
+  { href: '/costs', label: 'Costos AI', icon: DollarSign },
   { href: '/metrics', label: 'Métricas', icon: BarChart3 },
 ];
 
-const sistemaItems: NavItem[] = [
-  { href: '/settings', label: 'Configuración', icon: Settings },
+const adminItems: NavItem[] = [
+  { href: '/costs', label: 'Costos AI', icon: DollarSign },
+  { href: '/settings', label: 'Configuración', icon: Settings2 },
   { href: '/audit', label: 'Auditoría', icon: Shield },
 ];
 
@@ -51,6 +53,16 @@ export function Sidebar() {
   const [casesCount, setCasesCount] = useState<number>(0);
   const [email, setEmail] = useState<string>('');
   const [tenantName, setTenantName] = useState<string>('Tu organización');
+  const [adminOpen, setAdminOpen] = useState(false);
+
+  const isAdminRoute =
+    pathname.startsWith('/settings') ||
+    pathname.startsWith('/audit') ||
+    pathname.startsWith('/costs');
+
+  useEffect(() => {
+    if (isAdminRoute) setAdminOpen(true);
+  }, [isAdminRoute]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -139,7 +151,66 @@ export function Sidebar() {
         <div className="flex-1 py-4">
           <NavSection title="Principal" items={itemsWithBadge} />
           <NavSection title="Gerencia" items={gerenciaItems} />
-          <NavSection title="Sistema" items={sistemaItems} />
+          <div className="mt-6">
+            <p className="px-4 mb-2 text-xs uppercase tracking-widest text-[var(--nu-text-muted)]">
+              Administración
+            </p>
+            <div className="space-y-0.5">
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setAdminOpen((o) => !o)}
+                  aria-expanded={adminOpen}
+                  className={cn(
+                    'w-full flex items-center gap-3 py-2.5 px-4 rounded-r-md font-medium transition-colors border-l-[3px] border-l-transparent text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--nu-navy)]',
+                    isAdminRoute
+                      ? 'bg-[var(--nu-gold-dim)] border-l-[var(--nu-gold)] text-[var(--nu-gold)]'
+                      : 'text-[var(--nu-text-secondary)] hover:bg-[var(--nu-card-hover)] hover:text-[var(--nu-text)]'
+                  )}
+                >
+                  <Settings2 className="w-5 h-5 shrink-0" />
+                  <span className="flex-1">Administración</span>
+                  <ChevronDown
+                    className={cn(
+                      'w-5 h-5 shrink-0 transition-transform',
+                      adminOpen && 'rotate-180'
+                    )}
+                  />
+                </button>
+                <div
+                  className="grid transition-[grid-template-rows] duration-200"
+                  style={{ gridTemplateRows: adminOpen ? '1fr' : '0fr' }}
+                >
+                  <div className="overflow-hidden">
+                    <nav className="space-y-0.5 pl-10 pr-4 pb-2">
+                      {adminItems.map((item) => {
+                        const isActive =
+                          pathname === item.href ||
+                          (item.href !== '/dashboard' &&
+                            pathname.startsWith(item.href));
+                        const Icon = item.icon;
+                        return (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            className={cn(
+                              'flex items-center gap-3 py-2 px-3 rounded-md font-medium transition-colors border-l-[3px] border-l-transparent',
+                              isActive
+                                ? 'bg-[var(--nu-gold-dim)] border-l-[var(--nu-gold)] text-[var(--nu-gold)]'
+                                : 'text-[var(--nu-text-secondary)] hover:bg-[var(--nu-card-hover)] hover:text-[var(--nu-text)]'
+                            )}
+                          >
+                            <Icon className="w-4 h-4 shrink-0" />
+                            <span className="flex-1">{item.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </nav>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="border-t border-[var(--nu-border)] p-4 shrink-0">
