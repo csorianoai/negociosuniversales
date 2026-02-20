@@ -2,29 +2,32 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Menu, X, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
 const SERVICIOS_ITEMS = [
-  { href: '#servicios', label: 'Valoración' },
-  { href: '#servicios', label: 'Monitoreo' },
-  { href: '#servicios', label: 'Auditoría' },
+  { href: '/servicios', label: 'Valoración' },
+  { href: '/servicios', label: 'Monitoreo' },
+  { href: '/servicios', label: 'Auditoría' },
 ];
 
 const INDUSTRIAS_ITEMS = [
-  { href: '#industrias', label: 'Banca Comercial' },
-  { href: '#industrias', label: 'Hipotecario' },
-  { href: '#industrias', label: 'Leasing' },
-  { href: '#industrias', label: 'Hospitalidad' },
+  { href: '/industrias', label: 'Banca Comercial' },
+  { href: '/industrias', label: 'Hipotecario' },
+  { href: '/industrias', label: 'Leasing' },
+  { href: '/industrias', label: 'Hospitalidad' },
 ];
 
 export function PublicNavbar() {
+  const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [serviciosOpen, setServiciosOpen] = useState(false);
   const [industriasOpen, setIndustriasOpen] = useState(false);
   const [mobileServicios, setMobileServicios] = useState(false);
   const [mobileIndustrias, setMobileIndustrias] = useState(false);
+  const isHome = pathname === '/';
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -60,6 +63,13 @@ export function PublicNavbar() {
     setMobileOpen(false);
   };
 
+  const handleContacto = () => {
+    setMobileOpen(false);
+    if (isHome) {
+      scrollTo('contacto');
+    }
+  };
+
   return (
     <header
       className={cn(
@@ -91,9 +101,8 @@ export function PublicNavbar() {
             onMouseEnter={() => setServiciosOpen(true)}
             onMouseLeave={() => setServiciosOpen(false)}
           >
-            <button
-              type="button"
-              onClick={() => scrollTo('servicios')}
+            <Link
+              href="/servicios"
               className="flex items-center gap-1 px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)]"
               aria-expanded={serviciosOpen}
               aria-haspopup="true"
@@ -101,18 +110,17 @@ export function PublicNavbar() {
             >
               Servicios
               <ChevronDown className={cn('w-4 h-4 transition-transform', serviciosOpen && 'rotate-180')} />
-            </button>
+            </Link>
             {serviciosOpen && (
               <div className="absolute top-full left-0 mt-1 w-48 rounded-lg border border-white/10 bg-slate-900/95 backdrop-blur py-2 shadow-xl">
                 {SERVICIOS_ITEMS.map((item) => (
-                  <button
+                  <Link
                     key={item.label}
-                    type="button"
-                    onClick={() => scrollTo('servicios')}
+                    href={item.href}
                     className="block w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-white/5 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)] focus-visible:ring-inset rounded mx-1"
                   >
                     {item.label}
-                  </button>
+                  </Link>
                 ))}
               </div>
             )}
@@ -122,9 +130,8 @@ export function PublicNavbar() {
             onMouseEnter={() => setIndustriasOpen(true)}
             onMouseLeave={() => setIndustriasOpen(false)}
           >
-            <button
-              type="button"
-              onClick={() => scrollTo('industrias')}
+            <Link
+              href="/industrias"
               className="flex items-center gap-1 px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)]"
               aria-expanded={industriasOpen}
               aria-haspopup="true"
@@ -132,50 +139,45 @@ export function PublicNavbar() {
             >
               Industrias
               <ChevronDown className={cn('w-4 h-4 transition-transform', industriasOpen && 'rotate-180')} />
-            </button>
+            </Link>
             {industriasOpen && (
               <div className="absolute top-full left-0 mt-1 w-48 rounded-lg border border-white/10 bg-slate-900/95 backdrop-blur py-2 shadow-xl">
                 {INDUSTRIAS_ITEMS.map((item) => (
-                  <button
+                  <Link
                     key={item.label}
-                    type="button"
-                    onClick={() => scrollTo('industrias')}
+                    href={item.href}
                     className="block w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-white/5 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)] focus-visible:ring-inset rounded mx-1"
                   >
                     {item.label}
-                  </button>
+                  </Link>
                 ))}
               </div>
             )}
           </div>
-          <button
-            type="button"
-            onClick={() => scrollTo('plataforma')}
+          <Link
+            href="/plataforma"
             className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)]"
           >
             Plataforma
-          </button>
-          <button
-            type="button"
-            onClick={() => scrollTo('insights')}
+          </Link>
+          <Link
+            href="/insights"
             className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)]"
           >
             Insights
-          </button>
-          <button
-            type="button"
-            onClick={() => scrollTo('nosotros')}
+          </Link>
+          <Link
+            href="/nosotros"
             className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)]"
           >
             Nosotros
-          </button>
-          <button
-            type="button"
-            onClick={() => scrollTo('contacto')}
+          </Link>
+          <Link
+            href="/contacto"
             className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)]"
           >
             Contacto
-          </button>
+          </Link>
         </div>
         <div className="hidden lg:flex items-center gap-3">
           <Link
@@ -184,13 +186,22 @@ export function PublicNavbar() {
           >
             Ver Plataforma
           </Link>
-          <button
-            type="button"
-            onClick={() => scrollTo('contacto')}
-            className="px-4 py-2 text-sm font-medium rounded-lg bg-[var(--nu-gold)] text-slate-950 hover:opacity-90 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
-          >
-            Solicitar Demo
-          </button>
+          {isHome ? (
+            <button
+              type="button"
+              onClick={handleContacto}
+              className="px-4 py-2 text-sm font-medium rounded-lg bg-[var(--nu-gold)] text-slate-950 hover:opacity-90 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+            >
+              Solicitar Demo
+            </button>
+          ) : (
+            <Link
+              href="/contacto"
+              className="px-4 py-2 text-sm font-medium rounded-lg bg-[var(--nu-gold)] text-slate-950 hover:opacity-90 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+            >
+              Solicitar Demo
+            </Link>
+          )}
         </div>
 
         <button
@@ -231,14 +242,14 @@ export function PublicNavbar() {
           {mobileServicios && (
             <div className="pl-4 space-y-1">
               {SERVICIOS_ITEMS.map((item) => (
-                <button
+                <Link
                   key={item.label}
-                  type="button"
-                  onClick={() => scrollTo('servicios')}
+                  href={item.href}
+                  onClick={() => setMobileOpen(false)}
                   className="block w-full px-2 py-1 text-sm text-slate-400 hover:text-white text-left"
                 >
                   {item.label}
-                </button>
+                </Link>
               ))}
             </div>
           )}
@@ -254,45 +265,29 @@ export function PublicNavbar() {
           {mobileIndustrias && (
             <div className="pl-4 space-y-1">
               {INDUSTRIAS_ITEMS.map((item) => (
-                <button
+                <Link
                   key={item.label}
-                  type="button"
-                  onClick={() => scrollTo('industrias')}
+                  href={item.href}
+                  onClick={() => setMobileOpen(false)}
                   className="block w-full px-2 py-1 text-sm text-slate-400 hover:text-white text-left"
                 >
                   {item.label}
-                </button>
+                </Link>
               ))}
             </div>
           )}
-          <button
-            type="button"
-            onClick={() => scrollTo('plataforma')}
-            className="px-4 py-2 text-left text-slate-200 hover:text-[var(--nu-gold)] font-medium"
-          >
+          <Link href="/plataforma" onClick={() => setMobileOpen(false)} className="px-4 py-2 text-left text-slate-200 hover:text-[var(--nu-gold)] font-medium">
             Plataforma
-          </button>
-          <button
-            type="button"
-            onClick={() => scrollTo('insights')}
-            className="px-4 py-2 text-left text-slate-200 hover:text-[var(--nu-gold)] font-medium"
-          >
+          </Link>
+          <Link href="/insights" onClick={() => setMobileOpen(false)} className="px-4 py-2 text-left text-slate-200 hover:text-[var(--nu-gold)] font-medium">
             Insights
-          </button>
-          <button
-            type="button"
-            onClick={() => scrollTo('nosotros')}
-            className="px-4 py-2 text-left text-slate-200 hover:text-[var(--nu-gold)] font-medium"
-          >
+          </Link>
+          <Link href="/nosotros" onClick={() => setMobileOpen(false)} className="px-4 py-2 text-left text-slate-200 hover:text-[var(--nu-gold)] font-medium">
             Nosotros
-          </button>
-          <button
-            type="button"
-            onClick={() => scrollTo('contacto')}
-            className="px-4 py-2 text-left text-slate-200 hover:text-[var(--nu-gold)] font-medium"
-          >
+          </Link>
+          <Link href="/contacto" onClick={() => setMobileOpen(false)} className="px-4 py-2 text-left text-slate-200 hover:text-[var(--nu-gold)] font-medium">
             Contacto
-          </button>
+          </Link>
           <hr className="border-white/10 my-2" />
           <Link
             href="/login"
@@ -301,13 +296,23 @@ export function PublicNavbar() {
           >
             Ver Plataforma
           </Link>
-          <button
-            type="button"
-            onClick={() => scrollTo('contacto')}
-            className="px-4 py-2 text-sm font-medium rounded-lg bg-[var(--nu-gold)] text-slate-950 hover:opacity-90 text-center w-full"
-          >
-            Solicitar Demo
-          </button>
+          {isHome ? (
+            <button
+              type="button"
+              onClick={handleContacto}
+              className="px-4 py-2 text-sm font-medium rounded-lg bg-[var(--nu-gold)] text-slate-950 hover:opacity-90 text-center w-full"
+            >
+              Solicitar Demo
+            </button>
+          ) : (
+            <Link
+              href="/contacto"
+              onClick={() => setMobileOpen(false)}
+              className="px-4 py-2 text-sm font-medium rounded-lg bg-[var(--nu-gold)] text-slate-950 hover:opacity-90 text-center block"
+            >
+              Solicitar Demo
+            </Link>
+          )}
         </div>
       </div>
     </header>

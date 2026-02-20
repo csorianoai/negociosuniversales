@@ -2,11 +2,6 @@
 
 import Link from 'next/link';
 
-function scrollTo(id: string) {
-  const el = document.getElementById(id);
-  if (el) el.scrollIntoView({ behavior: 'smooth' });
-}
-
 export function PublicFooter() {
   return (
     <footer className="border-t border-white/10 py-12 mt-20">
@@ -16,19 +11,19 @@ export function PublicFooter() {
             <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">Servicios</h3>
             <ul className="space-y-2">
               <li>
-                <button type="button" onClick={() => scrollTo('servicios')} className="text-sm text-slate-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)] rounded">
+                <Link href="/servicios" className="text-sm text-slate-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)] rounded">
                   Valoración
-                </button>
+                </Link>
               </li>
               <li>
-                <button type="button" onClick={() => scrollTo('servicios')} className="text-sm text-slate-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)] rounded">
+                <Link href="/servicios" className="text-sm text-slate-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)] rounded">
                   Monitoreo
-                </button>
+                </Link>
               </li>
               <li>
-                <button type="button" onClick={() => scrollTo('servicios')} className="text-sm text-slate-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)] rounded">
+                <Link href="/servicios" className="text-sm text-slate-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)] rounded">
                   Auditoría
-                </button>
+                </Link>
               </li>
             </ul>
           </div>
@@ -36,30 +31,40 @@ export function PublicFooter() {
             <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">Industrias</h3>
             <ul className="space-y-2">
               <li>
-                <button type="button" onClick={() => scrollTo('industrias')} className="text-sm text-slate-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)] rounded">
+                <Link href="/industrias" className="text-sm text-slate-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)] rounded">
                   Banca
-                </button>
+                </Link>
               </li>
               <li>
-                <button type="button" onClick={() => scrollTo('industrias')} className="text-sm text-slate-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)] rounded">
+                <Link href="/industrias" className="text-sm text-slate-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)] rounded">
                   Hipotecario
-                </button>
+                </Link>
               </li>
               <li>
-                <button type="button" onClick={() => scrollTo('industrias')} className="text-sm text-slate-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)] rounded">
+                <Link href="/industrias" className="text-sm text-slate-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)] rounded">
                   Leasing
-                </button>
+                </Link>
               </li>
               <li>
-                <button type="button" onClick={() => scrollTo('industrias')} className="text-sm text-slate-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)] rounded">
+                <Link href="/industrias" className="text-sm text-slate-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)] rounded">
                   Hospitalidad
-                </button>
+                </Link>
               </li>
             </ul>
           </div>
           <div>
             <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">Recursos</h3>
             <ul className="space-y-2">
+              <li>
+                <Link href="/plataforma" className="text-sm text-slate-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)] rounded">
+                  Plataforma
+                </Link>
+              </li>
+              <li>
+                <Link href="/insights" className="text-sm text-slate-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)] rounded">
+                  Insights
+                </Link>
+              </li>
               <li>
                 <Link href="/security" className="text-sm text-slate-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)] rounded">
                   Seguridad
@@ -81,14 +86,14 @@ export function PublicFooter() {
             <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">Empresa</h3>
             <ul className="space-y-2">
               <li>
-                <button type="button" onClick={() => scrollTo('nosotros')} className="text-sm text-slate-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)] rounded">
+                <Link href="/nosotros" className="text-sm text-slate-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)] rounded">
                   Nosotros
-                </button>
+                </Link>
               </li>
               <li>
-                <button type="button" onClick={() => scrollTo('contacto')} className="text-sm text-slate-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)] rounded">
+                <Link href="/contacto" className="text-sm text-slate-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)] rounded">
                   Contacto
-                </button>
+                </Link>
               </li>
               <li>
                 <Link href="/login" className="text-sm text-slate-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)] rounded">
