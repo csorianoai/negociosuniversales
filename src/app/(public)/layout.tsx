@@ -15,7 +15,7 @@ export default function PublicLayout({
   return (
     <div className="min-h-screen text-white" style={{ background: 'var(--nu-navy)' }}>
       <PublicNavbar />
-      <main>{children}</main>
+      <main id="main">{children}</main>
       <PublicFooter />
     </div>
   );
