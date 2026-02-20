@@ -31,7 +31,7 @@ const principalItems: NavItem[] = [
 
 const gerenciaItems: NavItem[] = [
   { href: '/billing', label: 'Facturación', icon: Receipt },
-  { href: '/costs', label: 'Costos AI', icon: DollarSign },
+  { href: '/metrics', label: 'Costos AI', icon: DollarSign },
   { href: '/metrics', label: 'Métricas', icon: BarChart3 },
 ];
 

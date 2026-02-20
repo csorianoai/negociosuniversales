@@ -11,6 +11,8 @@ const pathLabels: Record<string, string> = {
   dashboard: 'Dashboard',
   cases: 'Casos',
   new: 'Nuevo Caso',
+  billing: 'Facturación',
+  metrics: 'Métricas & Analytics',
 };
 
 function getPageTitle(pathname: string): string {
