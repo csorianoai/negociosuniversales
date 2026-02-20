@@ -1,4 +1,5 @@
 import 'server-only';
+import { extractJson } from '@/lib/extract-json';
 import { z } from 'zod';
 import { createAdminClient } from '@/lib/supabase-admin';
 import { BaseAgent } from './base-agent';
@@ -72,7 +73,8 @@ export class ResearchAgent extends BaseAgent {
 
     let parsed: z.infer<typeof ResearchSchema>;
     try {
-      const json = JSON.parse(aiResult.content) as unknown;
+      const cleaned = extractJson(aiResult.content);
+      const json = JSON.parse(cleaned) as unknown;
       const parseResult = ResearchSchema.safeParse(json);
       if (!parseResult.success) {
         return {
@@ -149,3 +151,4 @@ export class ResearchAgent extends BaseAgent {
     };
   }
 }
+

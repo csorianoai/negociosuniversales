@@ -11,6 +11,24 @@ const IntakeSchema = z.object({
   needs_human_review: z.boolean().optional(),
 });
 
+/**
+ * Extracts the first JSON object from a string that may contain
+ * markdown fences, preamble text, or trailing explanation.
+ */
+function extractJson(text: string): string {
+  let raw = text.trim();
+  // Remove markdown code fences if present
+  raw = raw.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '');
+  raw = raw.trim();
+  // Find first { and last }
+  const jsonStart = raw.indexOf('{');
+  const jsonEnd = raw.lastIndexOf('}');
+  if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+    return raw.slice(jsonStart, jsonEnd + 1);
+  }
+  return raw;
+}
+
 export class IntakeAgent extends BaseAgent {
   constructor() {
     super('intake', AI_MODELS.HAIKU, 'INTAKE.md');
@@ -75,7 +93,8 @@ export class IntakeAgent extends BaseAgent {
 
     let parsed: z.infer<typeof IntakeSchema>;
     try {
-      const json = JSON.parse(aiResult.content) as unknown;
+      const cleaned = extractJson(aiResult.content);
+      const json = JSON.parse(cleaned) as unknown;
       const parseResult = IntakeSchema.safeParse(json);
       if (!parseResult.success) {
         return {

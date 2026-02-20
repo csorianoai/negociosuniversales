@@ -1,4 +1,5 @@
 import 'server-only';
+import { extractJson } from '@/lib/extract-json';
 import { createAdminClient } from '@/lib/supabase-admin';
 import { BaseAgent } from './base-agent';
 import { AI_MODELS } from '@/core/types';
@@ -152,3 +153,4 @@ export class ReportWriterAgent extends BaseAgent {
     };
   }
 }
+
