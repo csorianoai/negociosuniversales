@@ -3,12 +3,18 @@
  * NO lucide icons here.
  */
 
-export type Vertical = 'real_estate' | 'vehicles' | 'equipment' | 'other';
+export type Vertical =
+  | 'real_estate'
+  | 'vehicles'
+  | 'equipment'
+  | 'hotel_equipment'
+  | 'other';
 
 export interface VerticalPricing {
   real_estate: number;
   vehicles: number;
   equipment: number;
+  hotel_equipment: number;
   other: number;
 }
 
@@ -66,6 +72,7 @@ export const DEFAULT_PRICING: VerticalPricing = {
   real_estate: 6500,
   vehicles: 3500,
   equipment: 5500,
+  hotel_equipment: 5000,
   other: 6000,
 };
 
@@ -75,6 +82,7 @@ export const VERTICAL_LABELS: Record<Vertical, string> = {
   real_estate: 'Inmobiliaria',
   vehicles: 'Vehículos',
   equipment: 'Equipos',
+  hotel_equipment: 'Equip. Hotel',
   other: 'Otros',
 };
 
@@ -96,10 +104,29 @@ export function mapCaseTypeToVertical(caseType: string): Vertical {
   ) {
     return 'vehicles';
   }
+  if (
+    t.includes('hotel') ||
+    t.includes('hoteleria') ||
+    t.includes('hotelería')
+  ) {
+    return 'hotel_equipment';
+  }
   if (t.includes('machinery') || t.includes('equipment') || t.includes('assets')) {
     return 'equipment';
   }
   return 'other';
+}
+
+const PRICING_KEYS: (keyof VerticalPricing)[] = [
+  'real_estate',
+  'vehicles',
+  'equipment',
+  'hotel_equipment',
+  'other',
+];
+
+function isFiniteNumber(v: unknown): v is number {
+  return typeof v === 'number' && Number.isFinite(v);
 }
 
 export function getPricing(): VerticalPricing {
@@ -108,23 +135,15 @@ export function getPricing(): VerticalPricing {
     const raw = localStorage.getItem('nu_pricing_v1');
     if (!raw) return DEFAULT_PRICING;
     const parsed = JSON.parse(raw) as unknown;
-    if (
-      parsed !== null &&
-      typeof parsed === 'object' &&
-      'real_estate' in parsed &&
-      'vehicles' in parsed &&
-      'equipment' in parsed &&
-      'other' in parsed
-    ) {
-      const p = parsed as Record<string, unknown>;
-      const re = Number(p.real_estate);
-      const ve = Number(p.vehicles);
-      const eq = Number(p.equipment);
-      const ot = Number(p.other);
-      if (Number.isFinite(re) && Number.isFinite(ve) && Number.isFinite(eq) && Number.isFinite(ot)) {
-        return { real_estate: re, vehicles: ve, equipment: eq, other: ot };
-      }
+    if (parsed === null || typeof parsed !== 'object') return DEFAULT_PRICING;
+    const p = parsed as Record<string, unknown>;
+    const merged: VerticalPricing = { ...DEFAULT_PRICING };
+    for (const k of PRICING_KEYS) {
+      if (!Object.prototype.hasOwnProperty.call(p, k)) continue;
+      const val = p[k];
+      if (isFiniteNumber(val)) merged[k] = val;
     }
+    return merged;
   } catch {
     /* ignore */
   }
@@ -218,6 +237,7 @@ export function calculateBilling(
     real_estate: { count: 0, totalDop: 0 },
     vehicles: { count: 0, totalDop: 0 },
     equipment: { count: 0, totalDop: 0 },
+    hotel_equipment: { count: 0, totalDop: 0 },
     other: { count: 0, totalDop: 0 },
   };
 

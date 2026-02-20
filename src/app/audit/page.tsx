@@ -10,48 +10,14 @@ import {
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-
-interface CaseLike {
-  case_number: string;
-  status: string;
-  case_type: string;
-  created_at: string;
-  updated_at?: string;
-  property_data: unknown;
-}
-
-function isCaseLike(obj: unknown): obj is CaseLike {
-  if (obj === null || typeof obj !== 'object') return false;
-  const o = obj as Record<string, unknown>;
-  return (
-    typeof o.case_number === 'string' &&
-    typeof o.status === 'string' &&
-    typeof o.case_type === 'string' &&
-    typeof o.created_at === 'string' &&
-    (o.property_data === null ||
-      (typeof o.property_data === 'object' && !Array.isArray(o.property_data)))
-  );
-}
+import {
+  normalizeCasesResponse,
+  isCaseLike,
+  extractPropertyField,
+} from '@/lib/case-utils';
 
 function getAddress(propertyData: unknown): string {
-  if (propertyData === null || typeof propertyData !== 'object') return '—';
-  const pd = propertyData as Record<string, unknown>;
-  const a = pd.address;
-  if (typeof a === 'string') return a;
-  if (a !== null && typeof a === 'object' && !Array.isArray(a)) {
-    const full = (a as Record<string, unknown>).full;
-    if (typeof full === 'string') return full;
-  }
-  return '—';
-}
-
-function parseCasesResponse(data: unknown): unknown[] {
-  if (Array.isArray(data)) return data;
-  if (data !== null && typeof data === 'object' && 'cases' in data) {
-    const c = (data as Record<string, unknown>).cases;
-    return Array.isArray(c) ? c : [];
-  }
-  return [];
+  return extractPropertyField(propertyData, 'address');
 }
 
 type EventType =
@@ -178,7 +144,7 @@ export default function AuditPage() {
         return;
       }
       const data = await res.json().catch(() => []);
-      setCases(parseCasesResponse(data));
+      setCases(normalizeCasesResponse(data));
     } catch {
       setError('No se pudo cargar los datos. Revisa la conexión.');
     } finally {

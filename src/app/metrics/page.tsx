@@ -211,6 +211,7 @@ export default function MetricsPage() {
     ['real_estate', 'Inmobiliaria'],
     ['vehicles', 'Vehículos'],
     ['equipment', 'Equipos'],
+    ['hotel_equipment', 'Equip. Hotel'],
     ['other', 'Otros'],
   ] as const;
 

@@ -14,6 +14,9 @@ const pathLabels: Record<string, string> = {
   billing: 'Facturación',
   costs: 'Costos AI',
   metrics: 'Métricas & Analytics',
+  'ai-studio': 'AI Studio',
+  operations: 'Operaciones',
+  tenants: 'Portal Bancos',
   settings: 'Configuración',
   audit: 'Auditoría',
 };

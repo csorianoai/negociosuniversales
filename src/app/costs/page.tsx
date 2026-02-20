@@ -26,29 +26,12 @@ import {
 import { AppLayout } from '@/components/layout/AppLayout';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { ServiceStatus } from '@/components/ui/ServiceStatus';
-
-interface CaseLike {
-  case_number: string;
-  status: string;
-  case_type: string;
-  created_at: string;
-  updated_at?: string;
-  property_data: unknown;
-  ai_cost_usd?: unknown;
-  ai_confidence?: unknown;
-}
-
-function isCaseLike(obj: unknown): obj is CaseLike {
-  if (obj === null || typeof obj !== 'object') return false;
-  const o = obj as Record<string, unknown>;
-  return (
-    typeof o.case_number === 'string' &&
-    typeof o.status === 'string' &&
-    typeof o.case_type === 'string' &&
-    typeof o.created_at === 'string' &&
-    (o.property_data === null || (typeof o.property_data === 'object' && !Array.isArray(o.property_data)))
-  );
-}
+import {
+  normalizeCasesResponse,
+  isCaseLike,
+  extractPropertyField,
+  parseValidDate,
+} from '@/lib/case-utils';
 
 function getNumber(v: unknown): number {
   if (typeof v === 'number' && Number.isFinite(v)) return v;
@@ -59,18 +42,6 @@ function getNumber(v: unknown): number {
   return 0;
 }
 
-function getAddress(propertyData: unknown): string {
-  if (propertyData === null || typeof propertyData !== 'object') return '—';
-  const pd = propertyData as Record<string, unknown>;
-  const a = pd.address;
-  if (typeof a === 'string') return a;
-  if (a !== null && typeof a === 'object' && !Array.isArray(a)) {
-    const full = (a as Record<string, unknown>).full;
-    if (typeof full === 'string') return full;
-  }
-  return '—';
-}
-
 function getConfidencePercent(v: unknown): string {
   if (typeof v === 'number' && Number.isFinite(v)) {
     return `${(v * 100).toFixed(0)}%`;
@@ -78,14 +49,6 @@ function getConfidencePercent(v: unknown): string {
   return '—';
 }
 
-function parseCasesResponse(data: unknown): unknown[] {
-  if (Array.isArray(data)) return data;
-  if (data !== null && typeof data === 'object' && 'cases' in data) {
-    const c = (data as Record<string, unknown>).cases;
-    return Array.isArray(c) ? c : [];
-  }
-  return [];
-}
 
 function escapeCsvCell(s: string): string {
   if (s.includes(',') || s.includes('"') || s.includes('\n') || s.includes('\r')) {
@@ -119,7 +82,7 @@ export default function CostsPage() {
         return;
       }
       const data = await res.json();
-      setCases(parseCasesResponse(data));
+      setCases(normalizeCasesResponse(data));
     } catch {
       setError('Error al conectar.');
     } finally {
@@ -131,10 +94,7 @@ export default function CostsPage() {
     load();
   }, [load]);
 
-  const validCases = useMemo(
-    () => cases.filter(isCaseLike),
-    [cases]
-  );
+  const validCases = useMemo(() => cases.filter(isCaseLike), [cases]);
 
   const totalAiCostUsd = useMemo(
     () => validCases.reduce((sum, c) => sum + getNumber(c.ai_cost_usd), 0),
@@ -150,8 +110,8 @@ export default function CostsPage() {
     () =>
       validCases
         .filter((c) => {
-          const d = new Date(c.created_at);
-          return d >= firstOfMonth && d <= now;
+          const d = parseValidDate(c.created_at);
+          return d && d >= firstOfMonth && d <= now;
         })
         .reduce((sum, c) => sum + getNumber(c.ai_cost_usd), 0),
     [validCases]
@@ -196,7 +156,7 @@ export default function CostsPage() {
     const rows = validCases.map((c) => [
       c.created_at.slice(0, 10),
       escapeCsvCell(c.case_number),
-      escapeCsvCell(getAddress(c.property_data)),
+      escapeCsvCell(extractPropertyField(c.property_data, 'address')),
       escapeCsvCell(c.status),
       String(getNumber(c.ai_cost_usd).toFixed(2)),
       getConfidencePercent(c.ai_confidence),
@@ -525,7 +485,7 @@ export default function CostsPage() {
                         {c.case_number}
                       </td>
                       <td className="px-6 py-4 text-sm text-[var(--nu-text-secondary)]">
-                        {getAddress(c.property_data)}
+                        {extractPropertyField(c.property_data, 'address')}
                       </td>
                       <td className="px-6 py-4">
                         <StatusBadge status={c.status} />

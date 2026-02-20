@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { isRecord } from '@/lib/case-utils';
 import {
   Building2,
   Receipt,
@@ -16,6 +17,7 @@ const VERTICAL_LABELS: Record<string, string> = {
   real_estate: 'Inmobiliaria',
   vehicles: 'Vehículos',
   equipment: 'Equipos',
+  hotel_equipment: 'Equip. Hotel',
   other: 'Otros',
 };
 
@@ -240,16 +242,14 @@ export default function SettingsPage() {
               <div>
                 <dt className="text-[var(--nu-text-muted)]">Ambiente</dt>
                 <dd className="text-[var(--nu-text)]">
-                  {typeof process !== 'undefined' &&
-                  typeof (process as unknown as Record<string, unknown>).env ===
-                    'object'
-                    ? String(
-                        (
-                          (process as unknown as Record<string, unknown>)
-                            .env as Record<string, unknown>
-                        ).NODE_ENV ?? 'development'
-                      )
-                    : 'development'}
+                  {(() => {
+                    const p: unknown = typeof process !== 'undefined' ? process : null;
+                    if (!p || !isRecord(p)) return 'development';
+                    const env = p.env;
+                    if (!env || !isRecord(env)) return 'development';
+                    const v = env.NODE_ENV;
+                    return typeof v === 'string' ? v : 'development';
+                  })()}
                 </dd>
               </div>
               <div>

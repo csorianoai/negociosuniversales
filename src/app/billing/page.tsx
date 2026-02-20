@@ -8,6 +8,7 @@ import {
   Building2,
   Car,
   Cpu,
+  Hotel,
   Package,
   AlertCircle,
 } from 'lucide-react';
@@ -29,14 +30,7 @@ import {
   exportBillingCsv,
 } from '@/lib/billing-utils';
 
-function parseCasesResponse(data: unknown): unknown[] {
-  if (Array.isArray(data)) return data;
-  if (data !== null && typeof data === 'object' && 'cases' in data) {
-    const c = (data as Record<string, unknown>).cases;
-    return Array.isArray(c) ? c : [];
-  }
-  return [];
-}
+import { normalizeCasesResponse } from '@/lib/case-utils';
 
 function formatPeriodRange(period: BillingPeriod): string {
   return `${period.from.toLocaleDateString('es-DO', {
@@ -70,6 +64,7 @@ const VERTICAL_ICONS = {
   real_estate: Building2,
   vehicles: Car,
   equipment: Cpu,
+  hotel_equipment: Hotel,
   other: Package,
 } as const;
 
@@ -93,7 +88,7 @@ export default function BillingPage() {
         return;
       }
       const data = await res.json();
-      setCases(parseCasesResponse(data));
+      setCases(normalizeCasesResponse(data));
     } catch {
       setError('Error al conectar.');
     } finally {
@@ -225,8 +220,8 @@ export default function BillingPage() {
               Tarifas por Tasación (RD$)
             </h2>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {(['real_estate', 'vehicles', 'equipment', 'other'] as const).map(
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {(['real_estate', 'vehicles', 'equipment', 'hotel_equipment', 'other'] as const).map(
               (v) => (
                 <div key={v}>
                   <label className="block text-xs text-[var(--nu-text-muted)] mb-1">
@@ -236,7 +231,9 @@ export default function BillingPage() {
                         ? 'Vehículos'
                         : v === 'equipment'
                           ? 'Equipos'
-                          : 'Otros'}
+                          : v === 'hotel_equipment'
+                            ? 'Equip. Hotel'
+                            : 'Otros'}
                   </label>
                   <input
                     type="number"
@@ -311,6 +308,7 @@ export default function BillingPage() {
                   ['real_estate', 'Inmobiliaria'],
                   ['vehicles', 'Vehículos'],
                   ['equipment', 'Equipos'],
+                  ['hotel_equipment', 'Equip. Hotel'],
                   ['other', 'Otros'],
                 ] as const
               ).map(([v, label]) => {

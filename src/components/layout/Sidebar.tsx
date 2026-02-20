@@ -13,6 +13,9 @@ import {
   Settings2,
   ChevronDown,
   Shield,
+  Workflow,
+  Activity,
+  Building2,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase-client';
 import { cn } from '@/lib/cn';
@@ -30,13 +33,20 @@ const principalItems: NavItem[] = [
   { href: '/cases/new', label: 'Nuevo Caso', icon: PlusCircle },
 ];
 
+const valuacionItems: NavItem[] = [
+  { href: '/ai-studio', label: 'AI Studio', icon: Workflow },
+  { href: '/operations', label: 'Operaciones', icon: Activity },
+];
+
 const gerenciaItems: NavItem[] = [
   { href: '/billing', label: 'Facturación', icon: Receipt },
+  { href: '/tenants', label: 'Bancos', icon: Building2 },
   { href: '/costs', label: 'Costos AI', icon: DollarSign },
   { href: '/metrics', label: 'Métricas', icon: BarChart3 },
 ];
 
 const adminItems: NavItem[] = [
+  { href: '/ai-studio', label: 'AI Studio', icon: Workflow },
   { href: '/costs', label: 'Costos AI', icon: DollarSign },
   { href: '/settings', label: 'Configuración', icon: Settings2 },
   { href: '/audit', label: 'Auditoría', icon: Shield },
@@ -58,7 +68,8 @@ export function Sidebar() {
   const isAdminRoute =
     pathname.startsWith('/settings') ||
     pathname.startsWith('/audit') ||
-    pathname.startsWith('/costs');
+    pathname.startsWith('/costs') ||
+    pathname.startsWith('/ai-studio');
 
   useEffect(() => {
     if (isAdminRoute) setAdminOpen(true);
@@ -150,6 +161,7 @@ export function Sidebar() {
 
         <div className="flex-1 py-4">
           <NavSection title="Principal" items={itemsWithBadge} />
+          <NavSection title="Valoración" items={valuacionItems} />
           <NavSection title="Gerencia" items={gerenciaItems} />
           <div className="mt-6">
             <p className="px-4 mb-2 text-xs uppercase tracking-widest text-[var(--nu-text-muted)]">
