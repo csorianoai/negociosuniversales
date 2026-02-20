@@ -14,6 +14,7 @@ import {
   Shield,
   TrendingUp,
 } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { KPICard } from '@/components/ui/KPICard';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -139,6 +140,19 @@ export default function DashboardPage() {
         return db - da;
       })
       .slice(0, 12);
+  }, [cases]);
+
+  const chartByDay = useMemo(() => {
+    const byDay: Record<string, number> = {};
+    for (const c of cases) {
+      const d = parseValidDate(c.created_at);
+      if (!d) continue;
+      const key = d.toISOString().slice(0, 10);
+      byDay[key] = (byDay[key] ?? 0) + 1;
+    }
+    return Object.entries(byDay)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([day, count]) => ({ day: day.slice(8) + '/' + day.slice(5, 7), count }));
   }, [cases]);
 
   const activities = useMemo(() => {
@@ -276,6 +290,31 @@ export default function DashboardPage() {
         </div>
 
         <PipelineTimeline cases={cases} />
+
+        <div className="rounded-xl border border-[var(--nu-border)] bg-[var(--nu-card)] p-4 md:p-6">
+          <h2 className="font-semibold text-[var(--nu-text)] mb-4">Casos por día</h2>
+          {chartByDay.length >= 3 ? (
+            <div className="h-48 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartByDay} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                  <XAxis dataKey="day" tick={{ fill: 'var(--nu-text-muted)', fontSize: 11 }} />
+                  <YAxis tick={{ fill: 'var(--nu-text-muted)', fontSize: 11 }} allowDecimals={false} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: 'var(--nu-navy-light)', border: '1px solid var(--nu-border)' }}
+                    labelStyle={{ color: 'var(--nu-text)' }}
+                  />
+                  <Bar dataKey="count" fill="var(--nu-gold)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 text-center border border-dashed border-[var(--nu-border)] rounded-lg bg-[var(--nu-navy-light)]/30">
+              <TrendingUp className="w-10 h-10 text-[var(--nu-gold)]/50 mb-2" />
+              <p className="text-sm text-[var(--nu-text-secondary)]">Actividad reciente</p>
+              <p className="text-xs text-[var(--nu-text-muted)] mt-1">El gráfico se mostrará con más días de datos</p>
+            </div>
+          )}
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 rounded-xl border border-[var(--nu-border)] bg-[var(--nu-card)] overflow-hidden">

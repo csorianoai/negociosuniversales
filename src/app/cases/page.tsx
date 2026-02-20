@@ -15,6 +15,7 @@ import {
   normalizeCasesResponse,
   isCaseLike,
 } from '@/lib/case-utils';
+import { mapCaseTypeToVertical, VERTICAL_LABELS, type Vertical } from '@/lib/billing-utils';
 import { DEMO_MODE, demoCases, mergeWithDemoData } from '@/lib/demo-data';
 import type { CaseLike } from '@/lib/case-utils';
 
@@ -23,6 +24,8 @@ function getAddress(c: CaseLike): string {
 }
 
 const PAGE_SIZE = 20;
+
+const VERTICALS: (Vertical | 'all')[] = ['all', 'real_estate', 'vehicles', 'equipment', 'hotel_equipment', 'other'];
 
 const STATUS_GROUPS = [
   { key: 'all', label: 'Todos' },
@@ -70,6 +73,7 @@ export default function CasesPage() {
   const [error, setError] = useState<string | null>(null);
   const [degraded, setDegraded] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [verticalFilter, setVerticalFilter] = useState<Vertical | 'all'>('all');
   const [searchRaw, setSearchRaw] = useState('');
   const [searchDebounced, setSearchDebounced] = useState('');
   const [page, setPage] = useState(1);
@@ -137,6 +141,9 @@ export default function CasesPage() {
     if (statusFilter !== 'all') {
       list = list.filter((c) => c.status === statusFilter);
     }
+    if (verticalFilter !== 'all') {
+      list = list.filter((c) => mapCaseTypeToVertical(c.case_type ?? '') === verticalFilter);
+    }
     if (searchDebounced.trim()) {
       const q = searchDebounced.trim().toLowerCase();
       list = list.filter((c) => {
@@ -146,7 +153,7 @@ export default function CasesPage() {
       });
     }
     return list;
-  }, [cases, statusFilter, searchDebounced]);
+  }, [cases, statusFilter, verticalFilter, searchDebounced]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = useMemo(
@@ -212,6 +219,29 @@ export default function CasesPage() {
         </div>
 
         <div className="flex flex-wrap gap-2">
+          <span className="text-xs text-[var(--nu-text-muted)] self-center pr-2">Vertical:</span>
+          {VERTICALS.map((v) => {
+            const active = verticalFilter === v;
+            const label = v === 'all' ? 'Todos' : VERTICAL_LABELS[v];
+            const count = v === 'all' ? cases.length : cases.filter((c) => mapCaseTypeToVertical(c.case_type ?? '') === v).length;
+            return (
+              <button
+                key={v}
+                type="button"
+                onClick={() => { setVerticalFilter(v); setPage(1); }}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)]/50 ${
+                  active
+                    ? 'bg-[var(--nu-gold)] text-[var(--nu-navy)]'
+                    : 'bg-[var(--nu-card)] border border-[var(--nu-border)] text-[var(--nu-text-secondary)] hover:bg-[var(--nu-card-hover)] hover:text-[var(--nu-text)]'
+                }`}
+              >
+                {label} ({count})
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <span className="text-xs text-[var(--nu-text-muted)] self-center pr-2">Status:</span>
           {STATUS_GROUPS.map((g) => {
             const count = g.key === 'all' ? cases.length : cases.filter((c) => c.status === g.key).length;
             const active = statusFilter === g.key;
