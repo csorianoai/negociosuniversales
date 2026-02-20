@@ -31,20 +31,15 @@ import {
   isRecord,
   extractPropertyField,
   parseValidDate,
+  getCaseId,
   type CaseLike,
 } from '@/lib/case-utils';
+import { mergeWithDemoData } from '@/lib/demo-data';
 import { mapCaseTypeToVertical, VERTICAL_LABELS, type Vertical } from '@/lib/billing-utils';
 import { getPipelineAgents } from '@/core/agents/registry';
 
 const safeNumber = (v: unknown): number =>
   typeof v === 'number' && Number.isFinite(v) ? v : 0;
-
-function getCaseId(c: CaseLike): string | null {
-  const u: unknown = c;
-  if (!isRecord(u)) return null;
-  const v: unknown = u.id;
-  return typeof v === 'string' && v.length > 0 ? v : null;
-}
 
 function getCaseHref(c: CaseLike): string | null {
   const id = getCaseId(c);
@@ -68,6 +63,7 @@ async function fetchCasesWithRetry(
   setData: (d: CaseLike[]) => void,
   setError: (e: string | null) => void,
   setLoading: (l: boolean) => void,
+  setUsedDemo?: (u: boolean) => void,
   retries = 3
 ): Promise<void> {
   setLoading(true);
@@ -77,7 +73,10 @@ async function fetchCasesWithRetry(
       if (!res.ok) throw new Error(res.status + ' ' + res.statusText);
       const data: unknown = await res.json();
       const raw = normalizeCasesResponse(data);
-      setData(raw.filter(isCaseLike));
+      const realCases = raw.filter(isCaseLike) as CaseLike[];
+      const { merged, usedDemo } = mergeWithDemoData(realCases, 12);
+      setData(merged);
+      setUsedDemo?.(usedDemo);
       setError(null);
       setLoading(false);
       return;
@@ -123,12 +122,13 @@ type TabId = 'queues' | 'sla' | 'trends' | 'distribution';
 
 export default function OperationsPage() {
   const [cases, setCases] = useState<CaseLike[]>([]);
+  const [usedDemo, setUsedDemo] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>('queues');
 
   const load = useCallback(
-    () => fetchCasesWithRetry(setCases, setError, setLoading),
+    () => fetchCasesWithRetry(setCases, setError, setLoading, setUsedDemo),
     []
   );
 
@@ -352,6 +352,12 @@ export default function OperationsPage() {
   return (
     <AppLayout>
       <div className="space-y-6">
+        {usedDemo && (
+          <div className="rounded-lg px-3 py-2 bg-amber-500/15 border border-amber-500/40 flex items-center gap-2">
+            <span className="text-xs font-medium text-amber-400 rounded-full px-2 py-0.5 bg-amber-500/25">DEMO</span>
+            <span className="text-sm text-slate-400">Datos demo como complemento</span>
+          </div>
+        )}
         <div>
           <h1
             className="text-2xl font-serif text-white"

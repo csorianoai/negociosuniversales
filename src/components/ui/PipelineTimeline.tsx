@@ -1,7 +1,11 @@
 'use client';
 
 import { cn } from '@/lib/cn';
-import type { Case } from '@/core/types';
+
+/** Minimal case shape for pipeline counts */
+export interface CaseWithStatus {
+  status: string;
+}
 
 const STAGES = ['intake', 'research', 'comparable', 'report', 'qa', 'compliance'] as const;
 
@@ -25,7 +29,7 @@ function statusToStage(status: string): (typeof STAGES)[number] {
   return 'intake';
 }
 
-function countByStage(cases: Case[]): Record<string, number> {
+function countByStage(cases: CaseWithStatus[]): Record<string, number> {
   const counts: Record<string, number> = {};
   for (const stage of STAGES) counts[stage] = 0;
   for (const c of cases) {
@@ -36,16 +40,16 @@ function countByStage(cases: Case[]): Record<string, number> {
 }
 
 interface PipelineTimelineProps {
-  cases?: Case[];
+  cases?: CaseWithStatus[];
   currentStatus?: string;
 }
 
 export function PipelineTimeline({ cases = [], currentStatus }: PipelineTimelineProps) {
-  const resolvedCases: Case[] =
+  const resolvedCases: CaseWithStatus[] =
     cases.length > 0
       ? cases
       : currentStatus
-        ? [{ id: '', tenant_id: '', case_number: '', status: currentStatus, case_type: '', property_data: {}, assigned_appraiser: null, ai_confidence: null, ai_cost_usd: null, created_by: null, created_at: '', updated_at: '' }]
+        ? [{ status: currentStatus }]
         : [];
   const counts = countByStage(resolvedCases);
 

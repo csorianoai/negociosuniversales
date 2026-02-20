@@ -107,3 +107,10 @@ export function parseValidDate(value: unknown): Date | null {
   const d = new Date(value);
   return Number.isNaN(d.getTime()) ? null : d;
 }
+
+/** Returns case id when present (for linking). */
+export function getCaseId(c: CaseLike | Record<string, unknown>): string | null {
+  if (!isRecord(c)) return null;
+  const v = c.id;
+  return typeof v === 'string' && v.length > 0 ? v : null;
+}

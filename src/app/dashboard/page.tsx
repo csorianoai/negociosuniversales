@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -20,22 +20,40 @@ import { StatusBadge } from '@/components/ui/StatusBadge';
 import { PipelineTimeline } from '@/components/ui/PipelineTimeline';
 import { ServiceStatus } from '@/components/ui/ServiceStatus';
 import { formatDateDO, formatRelativeShort } from '@/lib/format';
-import { getPropertyAddress } from '@/lib/property-data';
-import type { Case } from '@/core/types';
+import {
+  normalizeCasesResponse,
+  isCaseLike,
+  parseValidDate,
+  extractPropertyNumber,
+  getCaseId,
+  isRecord,
+} from '@/lib/case-utils';
+import { mergeWithDemoData } from '@/lib/demo-data';
+import { mapCaseTypeToVertical, VERTICAL_LABELS } from '@/lib/billing-utils';
+import type { CaseLike } from '@/lib/case-utils';
 import { DEMO_MODE, demoCases } from '@/lib/demo-data';
 
-function getAddress(c: Case): string {
+function getAddress(c: CaseLike): string {
   const pd = c.property_data;
-  if (pd && typeof pd === 'object' && 'address' in pd) {
-    const a = (pd as Record<string, unknown>).address;
+  if (pd && isRecord(pd) && 'address' in pd) {
+    const a = pd.address;
     return typeof a === 'string' ? a : 'Sin dirección';
   }
   return 'Sin dirección';
 }
 
+function getVertical(c: CaseLike): string {
+  const v = mapCaseTypeToVertical(c.case_type ?? '');
+  return VERTICAL_LABELS[v] ?? c.case_type ?? '—';
+}
+
+const PIPELINE_STATUS = new Set(['pending_intake', 'intake_processing', 'intake_completed', 'research_processing', 'research_completed', 'comparable_processing', 'comparable_completed', 'report_processing', 'report_completed', 'qa_processing', 'compliance_processing']);
+const ENTREGADOS_STATUS = new Set(['delivered', 'approved']);
+
 export default function DashboardPage() {
   const router = useRouter();
-  const [cases, setCases] = useState<Case[]>([]);
+  const [cases, setCases] = useState<CaseLike[]>([]);
+  const [usedDemo, setUsedDemo] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [degraded, setDegraded] = useState(false);
@@ -51,7 +69,9 @@ export default function DashboardPage() {
       }
       if (!res.ok) {
         if (DEMO_MODE) {
-          setCases(demoCases);
+          const { merged, usedDemo: ud } = mergeWithDemoData(demoCases, 12);
+          setCases(merged);
+          setUsedDemo(ud);
           setDegraded(true);
         } else {
           setError('Error al cargar datos.');
@@ -60,10 +80,16 @@ export default function DashboardPage() {
         return;
       }
       const data = await res.json();
-      setCases(Array.isArray(data) ? data : []);
+      const raw = normalizeCasesResponse(data);
+      const realCases = raw.filter(isCaseLike) as CaseLike[];
+      const { merged, usedDemo: ud } = mergeWithDemoData(realCases, 12);
+      setCases(merged);
+      setUsedDemo(ud);
     } catch {
       if (DEMO_MODE) {
-        setCases(demoCases);
+        const { merged, usedDemo: ud } = mergeWithDemoData(demoCases, 12);
+        setCases(merged);
+        setUsedDemo(ud);
         setDegraded(true);
       } else {
         setError('Error al conectar.');
@@ -78,40 +104,69 @@ export default function DashboardPage() {
   }, [load]);
 
   const total = cases.length;
-  const enPipeline = cases.filter(
-    (c) => !['delivered', 'cancelled', 'approved'].includes(c.status)
-  ).length;
-  const completados = cases.filter((c) => c.status === 'delivered').length;
-  const costoTotal = cases.reduce((sum, c) => sum + (c.ai_cost_usd ?? 0), 0);
+  const enPipeline = cases.filter((c) => PIPELINE_STATUS.has(c.status)).length;
+  const entregados = cases.filter((c) => ENTREGADOS_STATUS.has(c.status)).length;
+  const costoTotal = cases.reduce((sum, c) => sum + (Number.isFinite(c.ai_cost_usd) ? (c.ai_cost_usd ?? 0) : 0), 0);
+  const valorTotal = useMemo(() => {
+    let s = 0;
+    for (const c of cases) {
+      const v = c.property_data && isRecord(c.property_data) ? extractPropertyNumber(c.property_data, 'valuation_point', 0) : 0;
+      if (Number.isFinite(v)) s += v;
+    }
+    return s;
+  }, [cases]);
+  const confianzaValues = useMemo(() => {
+    const arr: number[] = [];
+    for (const c of cases) {
+      const v = c.ai_confidence;
+      if (typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 1) arr.push(v);
+    }
+    return arr;
+  }, [cases]);
+  const confianzaProm = confianzaValues.length > 0
+    ? (confianzaValues.reduce((a, b) => a + b, 0) / confianzaValues.length) * 100
+    : null;
   const qaPassed = cases.filter((c) => c.status === 'qa_passed').length;
   const qaFailed = cases.filter((c) => c.status === 'qa_failed').length;
   const tasaExito =
     qaPassed + qaFailed > 0 ? (qaPassed / (qaPassed + qaFailed)) * 100 : 0;
 
-  const recentCases = [...cases]
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 10);
+  const recentCases = useMemo(() => {
+    return [...cases]
+      .sort((a, b) => {
+        const da = parseValidDate(a.created_at)?.getTime() ?? 0;
+        const db = parseValidDate(b.created_at)?.getTime() ?? 0;
+        return db - da;
+      })
+      .slice(0, 12);
+  }, [cases]);
 
-  const activities = [...cases]
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 5)
-    .map((c) => {
-      let action = 'actualizado';
-      if (c.status === 'delivered') action = 'entregado';
-      else if (c.status.includes('report')) action = 'en informe';
-      else if (c.status.includes('qa_failed') || c.status.includes('compliance_failed'))
-        action = 'fallido';
-      else if (
-        ['pending_intake', 'intake_processing', 'intake_completed'].includes(c.status)
-      )
-        action = 'pendiente';
-      return {
-        case_number: c.case_number,
-        action,
-        created_at: c.created_at,
-        status: c.status,
-      };
-    });
+  const activities = useMemo(() => {
+    return [...cases]
+      .sort((a, b) => {
+        const da = parseValidDate(a.created_at)?.getTime() ?? 0;
+        const db = parseValidDate(b.created_at)?.getTime() ?? 0;
+        return db - da;
+      })
+      .slice(0, 5)
+      .map((c) => {
+        let action = 'actualizado';
+        if (c.status === 'delivered') action = 'entregado';
+        else if (c.status.includes('report')) action = 'en informe';
+        else if (c.status.includes('qa_failed') || c.status.includes('compliance_failed'))
+          action = 'fallido';
+        else if (
+          ['pending_intake', 'intake_processing', 'intake_completed'].includes(c.status)
+        )
+          action = 'pendiente';
+        return {
+          case_number: c.case_number,
+          action,
+          created_at: c.created_at,
+          status: c.status,
+        };
+      });
+  }, [cases]);
 
   if (error && !degraded) {
     return (
@@ -135,6 +190,12 @@ export default function DashboardPage() {
   return (
     <AppLayout>
       <div className="space-y-6">
+        {usedDemo && (
+          <div className="rounded-lg px-3 py-2 bg-amber-500/15 border border-amber-500/40 flex items-center gap-2">
+            <span className="text-xs font-medium text-amber-400 rounded-full px-2 py-0.5 bg-amber-500/25">DEMO</span>
+            <span className="text-sm text-[var(--nu-text-muted)]">Datos demo como complemento para la presentación</span>
+          </div>
+        )}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1
@@ -164,7 +225,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           <KPICard
             title="Total Casos"
             value={loading ? '—' : total}
@@ -181,21 +242,35 @@ export default function DashboardPage() {
             skeleton={loading}
           />
           <KPICard
-            title="Completados"
-            value={loading ? '—' : completados}
+            title="Entregados"
+            value={loading ? '—' : entregados}
             icon={CheckCircle}
             trend={tasaExito > 0 ? `${tasaExito.toFixed(1)}% éxito` : undefined}
             color="emerald"
             skeleton={loading}
           />
           <KPICard
-            title="Costo AI"
+            title="Costo AI Total (US$)"
             value={loading ? '—' : `$${costoTotal.toFixed(2)}`}
             icon={DollarSign}
             trend={
               total > 0 ? `~$${(costoTotal / total).toFixed(3)}/caso` : undefined
             }
             color="purple"
+            skeleton={loading}
+          />
+          <KPICard
+            title="Valor Total Est. (RD$)"
+            value={loading ? '—' : valorTotal > 0 ? `RD$${Math.round(valorTotal).toLocaleString('es-DO')}` : '—'}
+            icon={TrendingUp}
+            color="gold"
+            skeleton={loading}
+          />
+          <KPICard
+            title="Confianza Prom."
+            value={loading ? '—' : confianzaProm != null ? `${confianzaProm.toFixed(1)}%` : '—'}
+            icon={Shield}
+            color="emerald"
             skeleton={loading}
           />
         </div>
@@ -207,7 +282,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--nu-border)]">
               <h2 className="font-semibold text-[var(--nu-text)]">Casos Recientes</h2>
               <span className="text-xs px-2 py-1 rounded-full bg-[var(--nu-gold-dim)] text-[var(--nu-gold)]">
-                Últimos 10
+                Últimos 12
               </span>
             </div>
             {loading ? (
@@ -232,10 +307,16 @@ export default function DashboardPage() {
                         Propiedad
                       </th>
                       <th className="px-6 py-3 text-left text-xs uppercase tracking-wide text-[var(--nu-text-muted)]">
+                        Vertical
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs uppercase tracking-wide text-[var(--nu-text-muted)]">
                         Status
                       </th>
                       <th className="px-6 py-3 text-left text-xs uppercase tracking-wide text-[var(--nu-text-muted)]">
-                        Costo AI
+                        Confianza
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs uppercase tracking-wide text-[var(--nu-text-muted)]">
+                        Costo USD
                       </th>
                       <th className="px-6 py-3 text-left text-xs uppercase tracking-wide text-[var(--nu-text-muted)]">
                         Fecha
@@ -243,35 +324,55 @@ export default function DashboardPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {recentCases.map((c) => (
-                      <tr
-                        key={c.id}
-                        className="border-b border-[var(--nu-border)]/60 hover:bg-[var(--nu-card-hover)] transition-colors"
-                      >
-                        <td className="px-6 py-4">
-                          <Link
-                            href={`/cases/${c.id}`}
-                            className="font-mono text-xs font-semibold text-[var(--nu-gold)] hover:underline"
-                          >
-                            {c.case_number}
-                          </Link>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-[var(--nu-text-secondary)]">
-                          {getAddress(c)}
-                        </td>
-                        <td className="px-6 py-4">
-                          <StatusBadge status={c.status} />
-                        </td>
-                        <td className="px-6 py-4 text-sm text-[var(--nu-text-secondary)]">
-                          {c.ai_cost_usd != null
-                            ? `$${c.ai_cost_usd.toFixed(2)}`
-                            : '—'}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-[var(--nu-text-muted)]">
-                          {formatDateDO(c.created_at)}
-                        </td>
-                      </tr>
-                    ))}
+                    {recentCases.map((c) => {
+                      const caseId = getCaseId(c);
+                      const conf = c.ai_confidence;
+                      const confPct =
+                        typeof conf === 'number' && Number.isFinite(conf) && conf >= 0 && conf <= 1
+                          ? `${(conf * 100).toFixed(0)}%`
+                          : '—';
+                      return (
+                        <tr
+                          key={caseId ?? c.case_number}
+                          className="border-b border-[var(--nu-border)]/60 hover:bg-[var(--nu-card-hover)] transition-colors"
+                        >
+                          <td className="px-6 py-4">
+                            {caseId ? (
+                              <Link
+                                href={`/cases/${caseId}`}
+                                className="font-mono text-xs font-semibold text-[var(--nu-gold)] hover:text-[var(--nu-gold)]/80"
+                              >
+                                {c.case_number}
+                              </Link>
+                            ) : (
+                              <span className="font-mono text-xs font-semibold text-[var(--nu-gold)]">
+                                {c.case_number}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-[var(--nu-text-secondary)]">
+                            {getAddress(c)}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-[var(--nu-text-muted)]">
+                            {getVertical(c)}
+                          </td>
+                          <td className="px-6 py-4">
+                            <StatusBadge status={c.status} />
+                          </td>
+                          <td className="px-6 py-4 text-sm text-[var(--nu-text-secondary)]">
+                            {confPct}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-[var(--nu-text-secondary)]">
+                            {c.ai_cost_usd != null && Number.isFinite(c.ai_cost_usd)
+                              ? `$${c.ai_cost_usd.toFixed(2)}`
+                              : '—'}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-[var(--nu-text-muted)]">
+                            {formatDateDO(c.created_at)}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

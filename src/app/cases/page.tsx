@@ -7,11 +7,20 @@ import { StatusBadge } from '@/components/ui/StatusBadge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Banner } from '@/components/ui/Banner';
 import { DataTable } from '@/components/ui/DataTable';
-import type { Case } from '@/core/types';
 import type { DataTableColumn } from '@/components/ui/DataTable';
 import { formatDateDO } from '@/lib/format';
-import { getPropertyAddress } from '@/lib/property-data';
-import { DEMO_MODE, demoCases } from '@/lib/demo-data';
+import {
+  extractPropertyField,
+  getCaseId,
+  normalizeCasesResponse,
+  isCaseLike,
+} from '@/lib/case-utils';
+import { DEMO_MODE, demoCases, mergeWithDemoData } from '@/lib/demo-data';
+import type { CaseLike } from '@/lib/case-utils';
+
+function getAddress(c: CaseLike): string {
+  return extractPropertyField(c.property_data ?? {}, 'address', 'Sin dirección');
+}
 
 const PAGE_SIZE = 20;
 
@@ -30,27 +39,33 @@ const STATUS_GROUPS = [
   { key: 'cancelled', label: 'Cancelado' },
 ] as const;
 
-const columns: DataTableColumn<Case>[] = [
+const columns: DataTableColumn<CaseLike>[] = [
   { key: 'case_number', header: 'Caso', render: (r) => <span className="font-mono text-[var(--nu-gold)]">{r.case_number}</span> },
-  { key: 'address', header: 'Dirección', render: (r) => <span className="text-[var(--nu-text-secondary)]">{getPropertyAddress(r.property_data) ?? 'Sin dirección'}</span> },
+  { key: 'address', header: 'Dirección', render: (r) => <span className="text-[var(--nu-text-secondary)]">{getAddress(r)}</span> },
   { key: 'status', header: 'Status', render: (r) => <StatusBadge status={r.status} /> },
   { key: 'date', header: 'Fecha', render: (r) => <span className="text-[var(--nu-text-muted)]">{formatDateDO(r.created_at)}</span> },
   {
     key: 'action',
     header: 'Acción',
-    render: (r) => (
-      <Link
-        href={`/cases/${r.id}`}
-        className="font-medium text-[var(--nu-gold)] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)]/50 rounded"
-      >
-        Ver
-      </Link>
-    ),
+    render: (r) => {
+      const id = getCaseId(r);
+      return id ? (
+        <Link
+          href={`/cases/${id}`}
+          className="font-medium text-[var(--nu-gold)] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)]/50 rounded"
+        >
+          Ver
+        </Link>
+      ) : (
+        <span className="text-[var(--nu-text-muted)]">—</span>
+      );
+    },
   },
 ];
 
 export default function CasesPage() {
-  const [cases, setCases] = useState<Case[]>([]);
+  const [cases, setCases] = useState<CaseLike[]>([]);
+  const [usedDemo, setUsedDemo] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [degraded, setDegraded] = useState(false);
@@ -83,7 +98,9 @@ export default function CasesPage() {
       }
       if (!res.ok) {
         if (DEMO_MODE) {
-          setCases(demoCases);
+          const { merged, usedDemo: ud } = mergeWithDemoData(demoCases, 12);
+          setCases(merged);
+          setUsedDemo(ud);
           setDegraded(true);
         } else {
           setError('Error al cargar datos.');
@@ -92,10 +109,16 @@ export default function CasesPage() {
         return;
       }
       const data = await res.json();
-      setCases(Array.isArray(data) ? data : []);
+      const raw = normalizeCasesResponse(data);
+      const realCases = raw.filter(isCaseLike) as CaseLike[];
+      const { merged, usedDemo: ud } = mergeWithDemoData(realCases, 12);
+      setCases(merged);
+      setUsedDemo(ud);
     } catch {
       if (DEMO_MODE) {
-        setCases(demoCases);
+        const { merged, usedDemo: ud } = mergeWithDemoData(demoCases, 12);
+        setCases(merged);
+        setUsedDemo(ud);
         setDegraded(true);
       } else {
         setError('Error al conectar.');
@@ -116,7 +139,11 @@ export default function CasesPage() {
     }
     if (searchDebounced.trim()) {
       const q = searchDebounced.trim().toLowerCase();
-      list = list.filter((c) => (getPropertyAddress(c.property_data) ?? '').toLowerCase().includes(q));
+      list = list.filter((c) => {
+        const addr = getAddress(c).toLowerCase();
+        const num = c.case_number.toLowerCase();
+        return addr.includes(q) || num.includes(q);
+      });
     }
     return list;
   }, [cases, statusFilter, searchDebounced]);
@@ -142,7 +169,14 @@ export default function CasesPage() {
           </Link>
         </div>
 
-        {degraded && (
+        {usedDemo && (
+          <div className="rounded-lg px-3 py-2 bg-amber-500/15 border border-amber-500/40 flex items-center gap-2">
+            <span className="text-xs font-medium text-amber-400 rounded-full px-2 py-0.5 bg-amber-500/25">DEMO</span>
+            <span className="text-sm text-[var(--nu-text-muted)]">Datos demo como complemento</span>
+          </div>
+        )}
+
+        {degraded && !usedDemo && (
           <Banner
             variant="degraded"
             message="Modo degradado: mostrando datos de demostración."
@@ -159,7 +193,7 @@ export default function CasesPage() {
             </span>
             <input
               type="text"
-              placeholder="Buscar por dirección..."
+              placeholder="Buscar por caso o dirección..."
               value={searchRaw}
               onChange={(e) => setSearchRaw(e.target.value)}
               className="w-full pl-10 pr-10 py-2 border border-[var(--nu-border)] rounded-lg bg-[var(--nu-navy-light)] text-[var(--nu-text)] placeholder:text-[var(--nu-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--nu-gold)]/50 focus:border-[var(--nu-gold)] transition-colors"
@@ -200,12 +234,12 @@ export default function CasesPage() {
 
         <div className="rounded-xl border border-[var(--nu-border)] bg-[var(--nu-card)] overflow-hidden">
           {loading ? (
-            <DataTable columns={columns} data={[]} keyFn={(r) => r.id} loading />
+            <DataTable columns={columns} data={[]} keyFn={(r) => getCaseId(r) ?? r.case_number} loading />
           ) : paginated.length === 0 ? (
             <EmptyState title="No hay casos" description="Ajuste filtros o cree un caso." />
           ) : (
             <>
-              <DataTable columns={columns} data={paginated} keyFn={(r) => r.id} />
+              <DataTable columns={columns} data={paginated} keyFn={(r) => getCaseId(r) ?? r.case_number} />
               <div className="px-6 py-4 border-t border-[var(--nu-border)] flex items-center justify-between text-sm text-[var(--nu-text-muted)]">
                 <span>
                   Mostrando {from}–{to} de {filtered.length}

@@ -3,37 +3,55 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { FileText, Image, File } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { PipelineTimeline } from '@/components/ui/PipelineTimeline';
 import { Banner } from '@/components/ui/Banner';
-import { DEMO_MODE, demoCases } from '@/lib/demo-data';
+import { DEMO_MODE, demoCases, enrichCaseDetailWithDemo } from '@/lib/demo-data';
 import {
   isRecord,
   normalizeCaseDetail,
   extractArrayField,
   extractPropertyField,
+  extractPropertyNumber,
+  getCaseId,
 } from '@/lib/case-utils';
 
-function isEvidenceLike(obj: unknown): obj is {
-  id: string;
-  file_path?: string;
-  file_hash?: string;
-} {
+const TABS = ['Valor', 'Criterio', 'Evidencia', 'Pipeline'] as const;
+type TabId = (typeof TABS)[number];
+
+function isEvidenceLike(obj: unknown): obj is Record<string, unknown> & { id: string } {
   if (!obj || typeof obj !== 'object') return false;
   const o = obj as Record<string, unknown>;
   return typeof o.id === 'string';
 }
 
-function isComparableLike(obj: unknown): obj is {
+function isComparableLike(obj: unknown): obj is Record<string, unknown> & {
   id: string;
   address?: string | null;
   price?: string | number | null;
-  similarity_score?: number | null;
+  source?: string;
 } {
   if (!obj || typeof obj !== 'object') return false;
   const o = obj as Record<string, unknown>;
-  return typeof o.id === 'string';
+  return typeof (o.id ?? o.address) === 'string';
+}
+
+function isVirtualPath(path: unknown): path is string {
+  return typeof path === 'string' && path.startsWith('virtual/');
+}
+
+function getEvidenceLabel(e: Record<string, unknown>): string {
+  if (isRecord(e.metadata) && typeof e.metadata.label === 'string' && e.metadata.label.length > 0) {
+    return e.metadata.label;
+  }
+  const p = e.file_path;
+  if (typeof p === 'string') {
+    const name = p.split('/').pop();
+    if (name) return name;
+  }
+  return 'Archivo';
 }
 
 export default function CaseDetailPage() {
@@ -45,6 +63,7 @@ export default function CaseDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [degraded, setDegraded] = useState(false);
   const [running, setRunning] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabId>('Valor');
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -59,8 +78,8 @@ export default function CaseDetailPage() {
       }
       if (!res.ok) {
         if (DEMO_MODE) {
-          const demo = demoCases.find((c) => c.id === id) ?? demoCases[0];
-          if (demo) {
+          const demo = demoCases.find((c) => getCaseId(c) === id) ?? demoCases[0];
+          if (demo && isRecord(demo)) {
             setRaw({
               ...demo,
               evidence: [],
@@ -80,8 +99,8 @@ export default function CaseDetailPage() {
       setRaw(json);
     } catch {
       if (DEMO_MODE) {
-        const demo = demoCases.find((c) => c.id === id) ?? demoCases[0];
-        if (demo) {
+        const demo = demoCases.find((c) => getCaseId(c) === id) ?? demoCases[0];
+        if (demo && isRecord(demo)) {
           setRaw({
             ...demo,
             evidence: [],
@@ -110,17 +129,30 @@ export default function CaseDetailPage() {
 
   const parsed = useMemo(() => normalizeCaseDetail(raw), [raw]);
 
-  const comparables = useMemo(() => {
+  const baseComparables = useMemo(() => {
     const fromParsed = extractArrayField(parsed, 'comparables');
     if (fromParsed.length > 0) return fromParsed;
     return extractArrayField(wrapperRecord, 'comparables');
   }, [parsed, wrapperRecord]);
 
-  const evidence = useMemo(() => {
+  const baseEvidence = useMemo(() => {
     const fromParsed = extractArrayField(parsed, 'evidence');
     if (fromParsed.length > 0) return fromParsed;
     return extractArrayField(wrapperRecord, 'evidence');
   }, [parsed, wrapperRecord]);
+
+  const enriched = useMemo(
+    () =>
+      enrichCaseDetailWithDemo({
+        caseData: parsed ?? {},
+        comparables: baseComparables,
+        evidence: baseEvidence,
+      }),
+    [parsed, baseComparables, baseEvidence]
+  );
+
+  const comparables = enriched.comparables;
+  const evidence = enriched.evidence;
 
   const reportMarkdown = useMemo(() => {
     if (!parsed) return null;
@@ -241,7 +273,14 @@ export default function CaseDetailPage() {
           ← Volver a Casos
         </Link>
 
-        {degraded && (
+        {enriched.usedDemo && (
+          <div className="rounded-lg px-3 py-2 bg-amber-500/15 border border-amber-500/40 flex items-center gap-2">
+            <span className="text-xs font-medium text-amber-400 rounded-full px-2 py-0.5 bg-amber-500/25">DEMO</span>
+            <span className="text-sm text-[var(--nu-text-muted)]">Datos demo como complemento</span>
+          </div>
+        )}
+
+        {degraded && !enriched.usedDemo && (
           <Banner
             variant="degraded"
             message="Modo degradado: datos de demostración."
@@ -292,79 +331,202 @@ export default function CaseDetailPage() {
           </div>
         </div>
 
-        <section className="rounded-xl border border-[var(--nu-border)] bg-[var(--nu-card)] p-6">
-          <h2 className="font-semibold text-[var(--nu-text)] mb-4">Pipeline</h2>
-          <PipelineTimeline currentStatus={status} />
-        </section>
+        <div className="flex gap-1 border-b border-[var(--nu-border)] overflow-x-auto">
+          {TABS.map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nu-gold)]/50 shrink-0 ${
+                activeTab === tab
+                  ? 'bg-[var(--nu-card)] text-[var(--nu-gold)] border border-[var(--nu-border)] border-b-transparent -mb-px'
+                  : 'text-[var(--nu-text-muted)] hover:text-[var(--nu-text)] hover:bg-[var(--nu-card-hover)]'
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
 
-        <section className="rounded-xl border border-[var(--nu-border)] bg-[var(--nu-card)] p-6">
-          <h2 className="font-semibold text-[var(--nu-text)] mb-4">
-            Evidencia
-          </h2>
-          {evidence.length === 0 ? (
-            <p className="text-[var(--nu-text-muted)]">Sin evidencia</p>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {evidence
-                .filter(isEvidenceLike)
-                .map((e) => (
-                  <div
-                    key={e.id}
-                    className="border border-[var(--nu-border)] rounded-md p-4 bg-[var(--nu-navy-light)]"
-                  >
-                    <p className="text-sm font-medium text-[var(--nu-text)] truncate">
-                      {typeof e.file_path === 'string'
-                        ? e.file_path.split('/').pop() ?? 'Archivo'
-                        : 'Archivo'}
+        <section className="rounded-b-xl border border-[var(--nu-border)] border-t-0 bg-[var(--nu-card)] p-6">
+          {activeTab === 'Valor' && (
+            <>
+              <h2 className="font-semibold text-[var(--nu-text)] mb-4">Valoración</h2>
+              {(() => {
+                const vMin = propertyData && isRecord(propertyData) ? extractPropertyNumber(propertyData, 'valuation_min') : null;
+                const vPoint = propertyData && isRecord(propertyData) ? extractPropertyNumber(propertyData, 'valuation_point') : null;
+                const vMax = propertyData && isRecord(propertyData) ? extractPropertyNumber(propertyData, 'valuation_max') : null;
+                const hasVal = vPoint != null && Number.isFinite(vPoint) && vPoint > 0;
+                const isPending = status === 'pending_intake' || status === 'intake_processing' || status === 'intake_completed';
+                if (isPending && !hasVal) {
+                  return (
+                    <p className="text-[var(--nu-text-muted)] italic">
+                      Valor en proceso
                     </p>
-                    <p className="text-xs text-[var(--nu-text-muted)] font-mono mt-1">
-                      {typeof e.file_hash === 'string'
-                        ? e.file_hash.slice(0, 12)
-                        : '—'}
-                    </p>
+                  );
+                }
+                return (
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap gap-4">
+                      {vMin != null && Number.isFinite(vMin) && (
+                        <div>
+                          <span className="text-xs text-[var(--nu-text-muted)]">Mínimo</span>
+                          <p className="text-lg font-semibold text-[var(--nu-text)]">RD$ {Math.round(vMin).toLocaleString('es-DO')}</p>
+                        </div>
+                      )}
+                      {vPoint != null && Number.isFinite(vPoint) && (
+                        <div>
+                          <span className="text-xs text-[var(--nu-text-muted)]">Punto</span>
+                          <p className="text-lg font-semibold text-[var(--nu-gold)]">RD$ {Math.round(vPoint).toLocaleString('es-DO')}</p>
+                        </div>
+                      )}
+                      {vMax != null && Number.isFinite(vMax) && (
+                        <div>
+                          <span className="text-xs text-[var(--nu-text-muted)]">Máximo</span>
+                          <p className="text-lg font-semibold text-[var(--nu-text)]">RD$ {Math.round(vMax).toLocaleString('es-DO')}</p>
+                        </div>
+                      )}
+                    </div>
+                    {typeof aiConfidence === 'number' && Number.isFinite(aiConfidence) && aiConfidence >= 0 && aiConfidence <= 1 && (
+                      <p className="text-sm text-[var(--nu-text-secondary)]">Confianza: {(aiConfidence * 100).toFixed(0)}%</p>
+                    )}
+                    {comparables.length > 0 && (
+                      <div className="mt-4">
+                        <h3 className="text-sm font-medium text-[var(--nu-text-muted)] mb-2">Comparables</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {comparables.filter(isComparableLike).map((c, idx) => {
+                            const src = c.source;
+                            const isDemoSource = typeof src === 'string' && src.toLowerCase().includes('demo');
+                            const priceVal = c.price;
+                            const priceNum = typeof priceVal === 'number' && Number.isFinite(priceVal) ? priceVal : typeof priceVal === 'string' ? Number.parseFloat(priceVal) : NaN;
+                            return (
+                              <div
+                                key={c.id ?? String(idx)}
+                                className="border border-[var(--nu-border)] rounded-md p-4 bg-[var(--nu-navy-light)]"
+                              >
+                                {isDemoSource && (
+                                  <p className="text-xs text-amber-400 mb-1">Fuente (Demo): {src}</p>
+                                )}
+                                <p className="text-sm font-medium text-[var(--nu-text)]">{c.address ?? 'Sin dirección'}</p>
+                                <p className="text-sm text-[var(--nu-text-secondary)]">
+                                  Precio: {Number.isFinite(priceNum) ? priceNum.toLocaleString('es-DO') : '—'} RD$
+                                </p>
+                                {c.similarity_score != null && Number.isFinite(c.similarity_score) && (
+                                  <p className="text-xs text-[var(--nu-text-muted)]">Similitud: {(Number(c.similarity_score) * 100).toFixed(0)}%</p>
+                                )}
+                                {(() => {
+                                  const adj = c.adjustments;
+                                  if (!adj || !isRecord(adj) || Object.keys(adj).length === 0) return null;
+                                  return (
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                      {Object.entries(adj).map(([k, v]) => (
+                                        <span key={k} className="text-xs px-1.5 py-0.5 rounded bg-[var(--nu-border)] text-[var(--nu-text-muted)]">
+                                          {`${k}: ${String(v)}`}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  );
+                                })()}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                ))}
-            </div>
+                );
+              })()}
+            </>
+          )}
+
+          {activeTab === 'Criterio' && (
+            <>
+              <h2 className="font-semibold text-[var(--nu-text)] mb-4">Criterio de tasación</h2>
+              {status === 'qa_failed' && (
+                <div className="rounded-lg px-4 py-3 bg-red-500/15 border border-red-500/40 mb-4">
+                  <p className="text-sm font-medium text-red-400">Banderas rojas QA</p>
+                  <p className="text-sm text-[var(--nu-text-muted)] mt-1">Este caso no superó el control de calidad. Requiere revisión.</p>
+                </div>
+              )}
+              <div className="space-y-4 text-sm text-[var(--nu-text-secondary)]">
+                <div>
+                  <h3 className="font-medium text-[var(--nu-text)] mb-1">Hechos</h3>
+                  <p className="whitespace-pre-wrap">{extractPropertyField(propertyData, 'hechos') !== '—' ? extractPropertyField(propertyData, 'hechos') : 'Datos de la propiedad y contexto de mercado.'}</p>
+                </div>
+                <div>
+                  <h3 className="font-medium text-[var(--nu-text)] mb-1">Supuestos</h3>
+                  <p className="whitespace-pre-wrap">{extractPropertyField(parsed, 'supuestos') !== '—' ? extractPropertyField(parsed, 'supuestos') : 'Supuestos estándar de tasación aplicables.'}</p>
+                </div>
+                <div>
+                  <h3 className="font-medium text-[var(--nu-text)] mb-1">Cálculos</h3>
+                  <p className="whitespace-pre-wrap">{extractPropertyField(parsed, 'calculos') !== '—' ? extractPropertyField(parsed, 'calculos') : reportMarkdown ?? 'Análisis comparativo y ajustes aplicados.'}</p>
+                </div>
+                <div>
+                  <h3 className="font-medium text-[var(--nu-text)] mb-1">Opinión</h3>
+                  <p className="whitespace-pre-wrap">{extractPropertyField(parsed, 'opinion') !== '—' ? extractPropertyField(parsed, 'opinion') : 'Valoración según metodología y evidencia disponible.'}</p>
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeTab === 'Evidencia' && (
+            <>
+              <h2 className="font-semibold text-[var(--nu-text)] mb-4">Evidencia</h2>
+              {evidence.length === 0 ? (
+                <p className="text-[var(--nu-text-muted)]">Sin evidencia</p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 overflow-x-auto">
+                  {evidence
+                    .filter(isEvidenceLike)
+                    .map((e) => {
+                      const fp = e.file_path;
+                      const isVirtual = isVirtualPath(fp);
+                      const label = getEvidenceLabel(e);
+                      return (
+                        <div
+                          key={e.id}
+                          className="border border-[var(--nu-border)] rounded-md p-4 bg-[var(--nu-navy-light)] flex items-start gap-3"
+                        >
+                          {isVirtual ? (
+                            <>
+                              {String(e.file_type).toLowerCase().includes('image') ? (
+                                <Image className="w-8 h-8 shrink-0 text-[var(--nu-gold)]" />
+                              ) : (
+                                <FileText className="w-8 h-8 shrink-0 text-[var(--nu-gold)]" />
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium text-[var(--nu-text)] truncate">{label}</p>
+                                <p className="text-xs text-[var(--nu-text-muted)] mt-1">Virtual (Demo)</p>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <File className="w-8 h-8 shrink-0 text-[var(--nu-text-muted)]" />
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium text-[var(--nu-text)] truncate">{label}</p>
+                                <p className="text-xs text-[var(--nu-text-muted)] font-mono mt-1">
+                                  {typeof e.file_hash === 'string' ? e.file_hash.slice(0, 12) : '—'}
+                                </p>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </>
+          )}
+
+          {activeTab === 'Pipeline' && (
+            <>
+              <h2 className="font-semibold text-[var(--nu-text)] mb-4">Pipeline</h2>
+              <PipelineTimeline currentStatus={status} />
+            </>
           )}
         </section>
 
-        {comparables.length > 0 && (
-          <section className="rounded-xl border border-[var(--nu-border)] bg-[var(--nu-card)] p-6">
-            <h2 className="font-semibold text-[var(--nu-text)] mb-4">
-              Comparables
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {comparables
-                .filter(isComparableLike)
-                .map((c) => (
-                  <div
-                    key={c.id}
-                    className="border border-[var(--nu-border)] rounded-md p-4 bg-[var(--nu-navy-light)]"
-                  >
-                    <p className="text-sm font-medium text-[var(--nu-text)]">
-                      {c.address ?? 'Sin dirección'}
-                    </p>
-                    <p className="text-sm text-[var(--nu-text-secondary)]">
-                      Precio:{' '}
-                      {c.price != null
-                        ? Number(c.price).toLocaleString()
-                        : '—'}{' '}
-                      USD
-                    </p>
-                    {c.similarity_score != null &&
-                      Number.isFinite(c.similarity_score) && (
-                        <p className="text-xs text-[var(--nu-text-muted)]">
-                          Similitud:{' '}
-                          {(c.similarity_score * 100).toFixed(0)}%
-                        </p>
-                      )}
-                  </div>
-                ))}
-            </div>
-          </section>
-        )}
-
-        <section className="rounded-xl border border-[var(--nu-border)] bg-[var(--nu-card)] p-6">
+        <section className="rounded-xl border border-[var(--nu-border)] bg-[var(--nu-card)] p-6 mt-6">
           <h2 className="font-semibold text-[var(--nu-text)] mb-4">
             Datos de la propiedad
           </h2>
